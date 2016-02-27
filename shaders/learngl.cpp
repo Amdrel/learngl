@@ -1,10 +1,13 @@
-#include <string>
-#include <sstream>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <math.h>
+#include <sstream>
+#include <string>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+
+using namespace std;
 
 // Window constants to keep viewport size consistent.
 const GLuint kWindowWidth = 800;
@@ -13,7 +16,7 @@ const GLuint kWindowHeight = 600;
 // Utility functions.
 bool checkShader(GLuint);
 bool checkShaderProgram(GLuint shaderProgram);
-std::string readShader(std::string filepath);
+string readShader(string filepath);
 
 // Callbacks
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -30,7 +33,7 @@ int main() {
   // Create a fixed 800x600 window that is not resizable.
   GLFWwindow* window = glfwCreateWindow(kWindowWidth, kWindowHeight, "LearnGL", nullptr, nullptr);
   if (window == nullptr) {
-    std::cerr << "Failed to created GLFW window" << std::endl;
+    cerr << "Failed to created GLFW window" << endl;
     glfwTerminate();
     return 1;
   }
@@ -41,7 +44,7 @@ int main() {
 
   glewExperimental = GL_TRUE;
   if (glewInit() != GLEW_OK) {
-    std::cerr << "Failed to initialize GLEW" << std::endl;
+    cerr << "Failed to initialize GLEW" << endl;
     glfwTerminate();
     return 1;
   }
@@ -50,13 +53,12 @@ int main() {
   glViewport(0, 0, kWindowWidth, kWindowHeight);
 
   // Read shader sources into memory.
-  std::string vertexShaderSource = readShader("glsl/vertex.glsl");
-  std::string fragmentShaderSource = readShader("glsl/fragment.glsl");
+  string vertexShaderSource = readShader("glsl/vertex.glsl");
+  string fragmentShaderSource = readShader("glsl/fragment.glsl");
 
   // Compile and check the vertex shader.
   const char* vertexShaderSourceCStr = vertexShaderSource.c_str();
-  GLuint vertexShader;
-  vertexShader = glCreateShader(GL_VERTEX_SHADER);
+  GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vertexShader, 1, &vertexShaderSourceCStr, nullptr);
   glCompileShader(vertexShader);
   if (!checkShader(vertexShader)) {
@@ -66,8 +68,7 @@ int main() {
 
   // Compile and check the fragment shader.
   const char* fragmentShaderSourceCStr = fragmentShaderSource.c_str();
-  GLuint fragmentShader;
-  fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+  GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
   glShaderSource(fragmentShader, 1, &fragmentShaderSourceCStr, nullptr);
   glCompileShader(fragmentShader);
   if (!checkShader(fragmentShader)) {
@@ -76,8 +77,7 @@ int main() {
   }
 
   // Create and link the shader program for the triangle.
-  GLuint shaderProgram;
-  shaderProgram = glCreateProgram();
+  GLuint shaderProgram = glCreateProgram();
   glAttachShader(shaderProgram, vertexShader);
   glAttachShader(shaderProgram, fragmentShader);
   glLinkProgram(shaderProgram);
@@ -92,10 +92,11 @@ int main() {
 
   // Square vertex data.
   GLfloat vertices[] = {
-     0.5f,  0.5f, 0.0f, // Top right
-     0.5f, -0.5f, 0.0f, // Bottom right
-    -0.5f, -0.5f, 0.0f, // Bottom left
-    -0.5f,  0.5f, 0.0f  // Top left
+    // Positions         // Colors
+     0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f, // Top right
+     0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f, // Bottom right
+    -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f, // Bottom left
+    -0.5f,  0.5f, 0.0f,  1.0f, 1.0f, 0.0f  // Top left
   };
 
   // Indices for the square.
@@ -122,9 +123,13 @@ int main() {
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-  // Set the vertex attribute pointers.
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+  // Set the position attributes.
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
   glEnableVertexAttribArray(0);
+
+  // Set the color attributes.
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+  glEnableVertexAttribArray(1);
 
   // Unbind the VBO and VAO to get a clean state. DO NOT unbind the EBO or the
   // VAO will no longer be able to access it.
@@ -141,8 +146,17 @@ int main() {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // Draw the magical triangle!
+    // Activate the shader program for this square.
     glUseProgram(shaderProgram);
+
+    // Use sin with time to get a constantly changing color and pass it as a
+    // uniform value to the fragment shader.
+    //GLfloat timeValue = glfwGetTime();
+    //GLfloat greenValue = (sin(timeValue) / 2) + 0.5;
+    //GLint vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
+    //glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+
+    // Draw the square!
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
@@ -170,7 +184,7 @@ bool checkShader(GLuint shader) {
   // Panic if there is a shader compilation error and dump it to stderr.
   if (!success) {
     glGetShaderInfoLog(shader, 512, nullptr, infoLog);
-    std::cerr << "ERROR: Shader compilation failed\n" << infoLog << std::endl;
+    cerr << "ERROR: Shader compilation failed\n" << infoLog << endl;
     return false;
   }
 
@@ -185,24 +199,24 @@ bool checkShaderProgram(GLuint shaderProgram) {
   // Panic if there is a shader link error and dump it to stderr.
   if (!success) {
     glGetShaderInfoLog(shaderProgram, 512, nullptr, infoLog);
-    std::cerr << "ERROR: Shader program link failed\n" << infoLog << std::endl;
+    cerr << "ERROR: Shader program link failed\n" << infoLog << endl;
     return false;
   }
 
   return true;
 }
 
-std::string readShader(std::string filepath) {
-  std::ifstream vertexShaderFile(filepath);
+string readShader(string filepath) {
+  ifstream vertexShaderFile(filepath);
 
   if (vertexShaderFile) {
-    std::ostringstream buffer;
+    ostringstream buffer;
     buffer << vertexShaderFile.rdbuf();
     vertexShaderFile.close();
 
     return buffer.str();
   } else {
-    std::cerr << "Unable to read vertex shader" << std::endl;
+    cerr << "Unable to read vertex shader" << endl;
     glfwTerminate();
     exit(1);
   }
