@@ -1,6 +1,13 @@
 CXX=clang++
 CXXFLAGS=-std=c++11 -Wall -Wextra -pedantic
-LDFLAGS=-lm -lGL -lglfw -lGLEW
+LDFLAGS=-lm -lglfw3 -lGLEW
+
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	LDFLAGS += -framework OpenGL
+else
+	LDFLAGS += -lGL
+endif
 
 SOURCES=learngl.cpp shader.cpp
 OBJECTS=$(SOURCES:%.cpp=%.o)
