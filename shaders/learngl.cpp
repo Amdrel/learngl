@@ -7,16 +7,13 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+#include "shader.h"
+
 using namespace std;
 
 // Window constants to keep viewport size consistent.
 const GLuint kWindowWidth = 800;
 const GLuint kWindowHeight = 600;
-
-// Utility functions.
-bool checkShader(GLuint);
-bool checkShaderProgram(GLuint shaderProgram);
-string readShader(string filepath);
 
 // Callbacks
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -52,43 +49,9 @@ int main() {
   // Create a viewport the same size as the window.
   glViewport(0, 0, kWindowWidth, kWindowHeight);
 
-  // Read shader sources into memory.
-  string vertexShaderSource = readShader("glsl/vertex.glsl");
-  string fragmentShaderSource = readShader("glsl/fragment.glsl");
-
-  // Compile and check the vertex shader.
-  const char* vertexShaderSourceCStr = vertexShaderSource.c_str();
-  GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-  glShaderSource(vertexShader, 1, &vertexShaderSourceCStr, nullptr);
-  glCompileShader(vertexShader);
-  if (!checkShader(vertexShader)) {
-    glfwTerminate();
-    return 1;
-  }
-
-  // Compile and check the fragment shader.
-  const char* fragmentShaderSourceCStr = fragmentShaderSource.c_str();
-  GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(fragmentShader, 1, &fragmentShaderSourceCStr, nullptr);
-  glCompileShader(fragmentShader);
-  if (!checkShader(fragmentShader)) {
-    glfwTerminate();
-    return 1;
-  }
-
-  // Create and link the shader program for the triangle.
-  GLuint shaderProgram = glCreateProgram();
-  glAttachShader(shaderProgram, vertexShader);
-  glAttachShader(shaderProgram, fragmentShader);
-  glLinkProgram(shaderProgram);
-  if (!checkShaderProgram(shaderProgram)) {
-    glfwTerminate();
-    return 1;
-  }
-
-  // Clean up the unlinked shaders as they are no longer needed.
-  glDeleteShader(vertexShader);
-  glDeleteShader(fragmentShader);
+  // Read and compile the vertex and fragment shaders using
+  // the shader helper class.
+  Shader shader("glsl/vertex.glsl", "glsl/fragment.glsl");
 
   // Square vertex data.
   GLfloat vertices[] = {
@@ -112,32 +75,30 @@ int main() {
   glGenBuffers(1, &VBO);
   glGenBuffers(1, &EBO);
 
-  // Bind the VAO first, set the vertex buffers, then the attribute pointers.
+  // Bind the VAO for the square first, set the vertex buffers,
+  // then the attribute pointers.
   glBindVertexArray(VAO);
 
-  // Copy the vertices into a buffer that OpenGL can use.
+  // Fill up the VBO and EBO for the square while the VAO for the square is
+  // currently bound (see above).
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-  // Copy the indices into a buffer that OpenGL can use.
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-  // Set the position attributes.
+  // Set the vertex attributes. This set of vertex attributes starts with the
+  // vertices and the colors after each vertex with a stride of 6 floats.
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
   glEnableVertexAttribArray(0);
-
-  // Set the color attributes.
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
   glEnableVertexAttribArray(1);
 
   // Unbind the VBO and VAO to get a clean state. DO NOT unbind the EBO or the
-  // VAO will no longer be able to access it.
+  // VAO will no longer be able to access it (I have no idea why).
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
 
-  // Render loop. All it does is render an orange triangle,
-  // not too exciting yet.
+  // Render loop.
   while (!glfwWindowShouldClose(window)) {
     // Check and call events.
     glfwPollEvents();
@@ -147,7 +108,7 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Activate the shader program for this square.
-    glUseProgram(shaderProgram);
+    shader.use();
 
     // Use sin with time to get a constantly changing color and pass it as a
     // uniform value to the fragment shader.
@@ -174,52 +135,6 @@ int main() {
   glfwTerminate();
 
   return 0;
-}
-
-bool checkShader(GLuint shader) {
-  GLint success;
-  GLchar infoLog[512];
-  glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-
-  // Panic if there is a shader compilation error and dump it to stderr.
-  if (!success) {
-    glGetShaderInfoLog(shader, 512, nullptr, infoLog);
-    cerr << "ERROR: Shader compilation failed\n" << infoLog << endl;
-    return false;
-  }
-
-  return true;
-}
-
-bool checkShaderProgram(GLuint shaderProgram) {
-  GLint success;
-  GLchar infoLog[512];
-  glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-
-  // Panic if there is a shader link error and dump it to stderr.
-  if (!success) {
-    glGetShaderInfoLog(shaderProgram, 512, nullptr, infoLog);
-    cerr << "ERROR: Shader program link failed\n" << infoLog << endl;
-    return false;
-  }
-
-  return true;
-}
-
-string readShader(string filepath) {
-  ifstream vertexShaderFile(filepath);
-
-  if (vertexShaderFile) {
-    ostringstream buffer;
-    buffer << vertexShaderFile.rdbuf();
-    vertexShaderFile.close();
-
-    return buffer.str();
-  } else {
-    cerr << "Unable to read vertex shader" << endl;
-    glfwTerminate();
-    exit(1);
-  }
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {

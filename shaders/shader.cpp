@@ -7,11 +7,53 @@
 #include <GLFW/glfw3.h>
 
 Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath) {
+  // Read shader sources into memory.
+  string vertexShaderSource = readShader(vertexPath);
+  string fragmentShaderSource = readShader(fragmentPath);
 
+  // Compile the vertex shader.
+  const char* vertexShaderSourceCStr = vertexShaderSource.c_str();
+  GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+  glShaderSource(vertexShader, 1, &vertexShaderSourceCStr, nullptr);
+  glCompileShader(vertexShader);
+
+  // Check the vertex shader.
+  if (!checkCompileStatus(vertexShader)) {
+    glfwTerminate();
+    exit(1);
+  }
+
+  // Compile the fragment shader.
+  const char* fragmentShaderSourceCStr = fragmentShaderSource.c_str();
+  GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+  glShaderSource(fragmentShader, 1, &fragmentShaderSourceCStr, nullptr);
+  glCompileShader(fragmentShader);
+
+  // Check the fragment shader.
+  if (!checkCompileStatus(fragmentShader)) {
+    glfwTerminate();
+    exit(1);
+  }
+
+  // Link the vertex and fragment shaders to create the shader program.
+  this->program = glCreateProgram();
+  glAttachShader(this->program, vertexShader);
+  glAttachShader(this->program, fragmentShader);
+  glLinkProgram(this->program);
+
+  // Verify the shaders linked successfully.
+  if (!checkLinkStatus()) {
+    glfwTerminate();
+    exit(1);
+  }
+
+  // Clean up the unlinked shaders as they are no longer needed.
+  glDeleteShader(vertexShader);
+  glDeleteShader(fragmentShader);
 }
 
 void Shader::use() {
-
+  glUseProgram(this->program);
 }
 
 string Shader::readShader(string filepath) {
@@ -24,7 +66,9 @@ string Shader::readShader(string filepath) {
 
     return buffer.str();
   } else {
-    cerr << "Unable to read vertex shader" << endl;
+    // Panic when the shader cannot be found. The assumption is made that there
+    // is no good reason to use missing shaders.
+    cerr << "ERROR: Unable to read vertex shader" << endl;
     glfwTerminate();
     exit(1);
   }
