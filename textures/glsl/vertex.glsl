@@ -8,7 +8,11 @@ out vec3 fragColor;
 out vec2 fragTexCoord;
 
 void main() {
-  gl_Position = vec4(position, 1.0);
   fragColor = color;
+
+  // Flip the texcoord on the y axis since the image loader loads them upside
+  // down for mystical reasons.
   fragTexCoord = vec2(texCoord.x, 1.0 - texCoord.y);
+
+  gl_Position = vec4(position, 1.0);
 }
