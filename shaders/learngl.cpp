@@ -113,10 +113,10 @@ int main() {
 
     // Use sin with time to get a constantly changing color and pass it as a
     // uniform value to the fragment shader.
-    //GLfloat timeValue = glfwGetTime();
-    //GLfloat greenValue = (sin(timeValue) / 2) + 0.5;
-    //GLint vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
-    //glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+    GLfloat timeValue = glfwGetTime();
+    GLfloat colorValue = (sin(timeValue) / 2) + 0.5;
+    GLint vertexColorLocation = glGetUniformLocation(shader.program, "timeColor");
+    glUniform4f(vertexColorLocation, colorValue, colorValue, colorValue, 1.0f);
 
     // Draw the square!
     glBindVertexArray(VAO);
