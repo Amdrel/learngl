@@ -7,6 +7,8 @@ layout (location = 2) in vec2 texCoord;
 out vec3 fragColor;
 out vec2 fragTexCoord;
 
+uniform mat4 transform;
+
 void main() {
   fragColor = color;
 
@@ -14,5 +16,6 @@ void main() {
   // down for mystical reasons.
   fragTexCoord = vec2(texCoord.x, 1.0 - texCoord.y);
 
-  gl_Position = vec4(position, 1.0);
+  // Apply the object's transform to the vertex.
+  gl_Position = transform * vec4(position, 1.0);
 }

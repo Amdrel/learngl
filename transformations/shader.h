@@ -5,8 +5,6 @@
 
 #include <GL/glew.h>
 
-using namespace std;
-
 class Shader {
   public:
     // Shader program pointer in the OpenGL state machine.
@@ -21,7 +19,7 @@ class Shader {
     void use();
   private:
     // Reads a shader (or any file for that matter) and puts it into a string.
-    string readShader(string filepath);
+    std::string readShader(std::string filepath);
 
     // Used to check if a shader compiled successfully.
     bool checkCompileStatus(GLuint shader);

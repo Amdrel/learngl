@@ -8,8 +8,8 @@
 
 Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath) {
   // Read shader sources into memory.
-  string vertexShaderSource = readShader(vertexPath);
-  string fragmentShaderSource = readShader(fragmentPath);
+  std::string vertexShaderSource = readShader(vertexPath);
+  std::string fragmentShaderSource = readShader(fragmentPath);
 
   // Compile the vertex shader.
   const char* vertexShaderSourceCStr = vertexShaderSource.c_str();
@@ -56,11 +56,11 @@ void Shader::use() {
   glUseProgram(this->program);
 }
 
-string Shader::readShader(string filepath) {
-  ifstream vertexShaderFile(filepath);
+std::string Shader::readShader(std::string filepath) {
+  std::ifstream vertexShaderFile(filepath);
 
   if (vertexShaderFile) {
-    ostringstream buffer;
+    std::ostringstream buffer;
     buffer << vertexShaderFile.rdbuf();
     vertexShaderFile.close();
 
@@ -68,7 +68,7 @@ string Shader::readShader(string filepath) {
   } else {
     // Panic when the shader cannot be found. The assumption is made that there
     // is no good reason to use missing shaders.
-    cerr << "ERROR: Unable to read vertex shader" << endl;
+    std::cerr << "ERROR: Unable to read vertex shader" << std::endl;
     glfwTerminate();
     exit(1);
   }
@@ -82,7 +82,7 @@ bool Shader::checkCompileStatus(GLuint shader) {
   // Panic if there is a shader compilation error and dump it to stderr.
   if (!success) {
     glGetShaderInfoLog(shader, 512, nullptr, infoLog);
-    cerr << "ERROR: Shader compilation failed\n" << infoLog << endl;
+    std::cerr << "ERROR: Shader compilation failed\n" << infoLog << std::endl;
     return false;
   }
 
@@ -97,7 +97,7 @@ bool Shader::checkLinkStatus() {
   // Panic if there is a shader link error and dump it to stderr.
   if (!success) {
     glGetShaderInfoLog(this->program, 512, nullptr, infoLog);
-    cerr << "ERROR: Shader program link failed\n" << infoLog << endl;
+    std::cerr << "ERROR: Shader program link failed\n" << infoLog << std::endl;
     return false;
   }
 

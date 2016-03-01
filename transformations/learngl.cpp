@@ -7,18 +7,20 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <SOIL/SOIL.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "shader.h"
 
-using namespace std;
-
-// Window constants to keep viewport size consistent.
+// Window constants for the initial window size.
 const GLuint kWindowWidth = 800;
 const GLuint kWindowHeight = 600;
 
-GLuint loadTexture(string filepath);
+// Utility functions.
+GLuint loadTexture(std::string filepath);
 
-// Callbacks
+// Callbacks.
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
 
 int main() {
@@ -34,7 +36,7 @@ int main() {
   // Create a fixed 800x600 window that is not resizable.
   GLFWwindow* window = glfwCreateWindow(kWindowWidth, kWindowHeight, "LearnGL", nullptr, nullptr);
   if (window == nullptr) {
-    cerr << "Failed to created GLFW window" << endl;
+    std::cerr << "Failed to created GLFW window" << std::endl;
     glfwTerminate();
     return 1;
   }
@@ -45,7 +47,7 @@ int main() {
 
   glewExperimental = GL_TRUE;
   if (glewInit() != GLEW_OK) {
-    cerr << "Failed to initialize GLEW" << endl;
+    std::cerr << "Failed to initialize GLEW" << std::endl;
     glfwTerminate();
     return 1;
   }
@@ -126,6 +128,13 @@ int main() {
     // Activate the shader program for this square.
     shader.use();
 
+    // Apply some transformations.
+    glm::mat4 trans;
+    trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
+    trans = glm::rotate(trans, (GLfloat)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+    GLuint transform = glGetUniformLocation(shader.program, "transform");
+    glUniformMatrix4fv(transform, 1, GL_FALSE, glm::value_ptr(trans));
+
     // Bind textures for the square to mix.
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture1);
@@ -154,7 +163,7 @@ int main() {
   return 0;
 }
 
-GLuint loadTexture(string filepath) {
+GLuint loadTexture(std::string filepath) {
   // Generate the texture on the OpenGL side and bind it.
   GLuint texture;
   glGenTextures(1, &texture);
