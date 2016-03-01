@@ -50,8 +50,13 @@ int main() {
     return 1;
   }
 
-  // Create a viewport the same size as the window.
-  glViewport(0, 0, kWindowWidth, kWindowHeight);
+  // Create a viewport the same size as the window. glfwGetFramebufferSize is
+  // used rather than the size constants since some windowing systems have a
+  // discrepancy between window size and framebuffer size
+  // (e.g HiDPi screen coordinates),
+  int fbWidth, fbHeight;
+  glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+  glViewport(0, 0, fbWidth, fbHeight);
 
   // Read and compile the vertex and fragment shaders using
   // the shader helper class.
