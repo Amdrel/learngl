@@ -4,7 +4,9 @@
 #include <iostream>
 #include <sstream>
 
-#include <GLFW/glfw3.h>
+extern "C" {
+  #include <GLFW/glfw3.h>
+}
 
 Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath) {
   // Read shader sources into memory.
