@@ -5,7 +5,7 @@
 #include <sstream>
 
 extern "C" {
-  #include <GLFW/glfw3.h>
+#include <GLFW/glfw3.h>
 }
 
 Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath) {

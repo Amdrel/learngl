@@ -9,9 +9,9 @@
 #include <glm/gtc/type_ptr.hpp>
 
 extern "C" {
-  #include <GL/glew.h>
-  #include <GLFW/glfw3.h>
-  #include <SOIL/SOIL.h>
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <SOIL/SOIL.h>
 }
 
 #include "shader.h"
