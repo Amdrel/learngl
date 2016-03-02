@@ -162,10 +162,13 @@ int main() {
     glm::vec3(-1.3f,  1.0f, -1.5f)
   };
 
-  // Move the "camera" back. This transform will be multiplied with the model
-  // matrix. The z coordinate is negative (right-handed system).
+  // Put the camera back a few units and look at origin.
   glm::mat4 view;
-  view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+  view = glm::lookAt(
+    glm::vec3(0.0f, 0.0f, 3.0f),
+    glm::vec3(0.0f, 0.0f, 0.0f),
+    glm::vec3(0.0f, 1.0f, 0.0f)
+  );
 
   // Create a perspective projection to fit the viewport.
   GLfloat screenWidth = (GLfloat)fbWidth;
@@ -192,6 +195,16 @@ int main() {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture2);
     glUniform1i(glGetUniformLocation(shader.program, "texture2"), 1);
+
+    // Spin the camera round origin!
+    GLfloat radius = 10.0f;
+    GLfloat camX = sin(glfwGetTime()) * radius;
+    GLfloat camZ = cos(glfwGetTime()) * radius / 4;
+    view = glm::lookAt(
+      glm::vec3(camX, 0.0f, camZ),
+      glm::vec3(0.0f, 0.0f, 0.0f),
+      glm::vec3(0.0f, 1.0f, 0.0f)
+    );
 
     // Pass the model, view, and projection matrices to get the vertices into
     // clip space (OpenGL will convert from clip space to coordinate space).
