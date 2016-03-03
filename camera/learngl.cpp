@@ -20,11 +20,35 @@ extern "C" {
 const GLuint kWindowWidth = 800;
 const GLuint kWindowHeight = 600;
 
+// Coordinate system matrices.
+glm::mat4 model;
+glm::mat4 view;
+glm::mat4 projection;
+
 // Initialize the camera looking forward 3 units from origin.
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
+// Pitch and yaw for an FPS camera.
+GLfloat pitch = 0.0f, yaw = -90.0f;
+
+// Aquire the initial x and y positions for mouse tracking (centered).
+GLfloat lastX = kWindowWidth / 2, lastY = kWindowHeight / 2;
+
+// Camera field of view.
+GLfloat fov = 45.0f;
+
+// Screen width and height for calculating the projection matrix. The window
+// width and height cannot be used since the size of the framebuffer may vary
+// on HiDPi screens (retina).
+GLfloat screenWidth, screenHeight;
+
+// State to prevent the FPS camera from snapping in an odd direction when the
+// window is focused for the first time.
+bool firstMouseEvent = true;
+
+// Keyboard state.
 bool keys[1024];
 
 // Utility functions.
@@ -33,6 +57,8 @@ void move(GLfloat delta);
 
 // Callbacks.
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void mouseCallback(GLFWwindow* window, double xpos, double ypos);
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
 int main() {
   // Initialize GLFW and set some hints that will create an OpenGL 3.3 context
@@ -55,6 +81,11 @@ int main() {
   // Create an OpenGL context and pass callbacks to GLFW.
   glfwMakeContextCurrent(window);
   glfwSetKeyCallback(window, keyCallback);
+  glfwSetCursorPosCallback(window, mouseCallback);
+  glfwSetScrollCallback(window, scrollCallback);
+
+  // Lock the mouse in the window.
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
   glewExperimental = GL_TRUE;
   if (glewInit() != GLEW_OK) {
@@ -171,14 +202,12 @@ int main() {
   };
 
   // Put the camera back a few units and look at origin.
-  glm::mat4 view;
   view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
   // Create a perspective projection to fit the viewport.
-  GLfloat screenWidth = (GLfloat)fbWidth;
-  GLfloat screenHeight = (GLfloat)fbHeight;
-  glm::mat4 projection;
-  projection = glm::perspective(45.0f, screenWidth / screenHeight, 0.1f, 100.0f);
+  screenWidth = (GLfloat)fbWidth;
+  screenHeight = (GLfloat)fbHeight;
+  projection = glm::perspective(glm::radians(fov), screenWidth / screenHeight, 0.1f, 100.0f);
 
   GLfloat delta = 0.0f;
   GLfloat lastFrame = 0.0f;
@@ -226,7 +255,7 @@ int main() {
       }
 
       // Apply transformations for the cube.
-      glm::mat4 model;
+      model = glm::mat4();
       model = glm::translate(model, cubePositions[i]);
       model = glm::rotate(model, rotation, glm::vec3(0.5f, 1.0f, 0.0f));
       GLuint modelMatrix = glGetUniformLocation(shader.program, "model");
@@ -300,4 +329,53 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, GL_TRUE);
   }
+}
+
+void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
+  if (firstMouseEvent) {
+    lastX = xpos;
+    lastY = ypos;
+    firstMouseEvent = false;
+  }
+
+  // Find the position difference of the mouse.
+  GLfloat xoffset = xpos - lastX;
+  GLfloat yoffset = lastY - ypos; // Reversed since positive y is up.
+
+  // Set the history values to the current values.
+  lastX = xpos;
+  lastY = ypos;
+
+  // Multiply the offset by the mouse sensitivity to prevent rapidly unplanned
+  // seizures and the like.
+  GLfloat mouseSensitivity = 0.12f;
+  xoffset *= mouseSensitivity;
+  yoffset *= mouseSensitivity;
+
+  yaw += xoffset;
+  pitch += yoffset;
+
+  // Constrain the pitch so the FPS camera does not do sick backflips.
+  if (pitch > 89.0f) pitch = 89.0f;
+  if (pitch < -89.0f) pitch = -89.0f;
+
+  // Update the camera's front vector with the new pitch and yaw values to
+  // change where it is pointing.
+  glm::vec3 front = glm::vec3(
+    cos(glm::radians(pitch)) * cos(glm::radians(yaw)),
+    sin(glm::radians(pitch)),
+    cos(glm::radians(pitch)) * sin(glm::radians(yaw))
+  );
+  cameraFront = glm::normalize(front);
+}
+
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+  fov -= yoffset;
+
+  // Constrain the fov (zoom).
+  if (fov < 1.0f) fov = 1.0f;
+  if (fov > 45.0f) fov = 45.0f;
+
+  // Update the projection matrix with the new fov.
+  projection = glm::perspective(glm::radians(fov), screenWidth / screenHeight, 0.1f, 100.0f);
 }
