@@ -38,6 +38,9 @@ GLfloat lastX = kWindowWidth / 2, lastY = kWindowHeight / 2;
 
 // Camera field of view.
 GLfloat fov = 45.0f;
+GLfloat startFov = fov;
+GLfloat targetFov = fov;
+GLfloat fovTime = 0.0f;
 
 // Screen width and height for calculating the projection matrix. The window
 // width and height cannot be used since the size of the framebuffer may vary
@@ -54,6 +57,7 @@ bool keys[1024];
 // Utility functions.
 GLuint loadTexture(std::string filepath);
 void move(GLfloat delta);
+GLfloat easeOutQuart(GLfloat t, GLfloat b, GLfloat c, GLfloat d);
 
 // Callbacks.
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -240,6 +244,16 @@ int main() {
     // Update the view matrix with the camera's current values.
     view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
+    const GLfloat limitTime = 1.0f;
+    fovTime += delta;
+
+    if (fovTime > limitTime) fovTime = limitTime;
+
+    fov = easeOutQuart(fovTime, startFov, (startFov - targetFov) * -1, limitTime);
+
+    // Updat the perspective to account for changes in fov.
+    projection = glm::perspective(glm::radians(fov), screenWidth / screenHeight, 0.1f, 100.0f);
+
     // Pass the model, view, and projection matrices to get the vertices into
     // clip space (OpenGL will convert from clip space to coordinate space).
     GLuint viewMatrix = glGetUniformLocation(shader.program, "view");
@@ -317,6 +331,12 @@ void move(GLfloat delta) {
   if (keys[GLFW_KEY_D]) cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 }
 
+GLfloat easeOutQuart(GLfloat t, GLfloat b, GLfloat c, GLfloat d) {
+  t /= d;
+  t--;
+  return -c * (t*t*t*t - 1) + b;
+}
+
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
   // Keep key state using a key buffer of size 1024.
   if (action == GLFW_PRESS) {
@@ -348,7 +368,7 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
 
   // Multiply the offset by the mouse sensitivity to prevent rapidly unplanned
   // seizures and the like.
-  GLfloat mouseSensitivity = 0.12f;
+  GLfloat mouseSensitivity = 0.12f / (45.0f / fov);
   xoffset *= mouseSensitivity;
   yoffset *= mouseSensitivity;
 
@@ -370,12 +390,11 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
 }
 
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-  fov -= yoffset;
+  fovTime = 0.0f;
+  startFov = fov;
+  targetFov -= yoffset * 3;
 
   // Constrain the fov (zoom).
-  if (fov < 1.0f) fov = 1.0f;
-  if (fov > 45.0f) fov = 45.0f;
-
-  // Update the projection matrix with the new fov.
-  projection = glm::perspective(glm::radians(fov), screenWidth / screenHeight, 0.1f, 100.0f);
+  if (targetFov < 1.0f) targetFov = 1.0f;
+  if (targetFov > 45.0f) targetFov = 45.0f;
 }
