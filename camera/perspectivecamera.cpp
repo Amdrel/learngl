@@ -14,9 +14,8 @@ PerspectiveCamera::PerspectiveCamera() {
   update();
 }
 
-PerspectiveCamera::PerspectiveCamera(const glm::vec3 position,
-  const glm::vec3 rotation, const GLfloat fov, const GLfloat aspect,
-  const GLfloat near, const GLfloat far) {
+PerspectiveCamera::PerspectiveCamera(glm::vec3 position, glm::vec3 rotation,
+  GLfloat fov, GLfloat aspect, GLfloat near, GLfloat far) {
 
   this->position = position;
   this->rotation = rotation;

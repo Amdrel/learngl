@@ -25,9 +25,8 @@ class PerspectiveCamera {
     GLfloat far;
 
     PerspectiveCamera();
-    PerspectiveCamera(const glm::vec3 position, const glm::vec3 rotation,
-      const GLfloat fov, const GLfloat aspect, const GLfloat near,
-      const GLfloat far);
+    PerspectiveCamera(glm::vec3 position, glm::vec3 rotation, GLfloat fov,
+      GLfloat aspect, GLfloat near, GLfloat far);
 
     // Update the view matrix and the perspective matrix.
     void update();
