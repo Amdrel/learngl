@@ -20,8 +20,16 @@ extern "C" {
 const GLuint kWindowWidth = 800;
 const GLuint kWindowHeight = 600;
 
+// Initialize the camera looking forward 3 units from origin.
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+bool keys[1024];
+
 // Utility functions.
 GLuint loadTexture(std::string filepath);
+void move(GLfloat delta);
 
 // Callbacks.
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -164,11 +172,7 @@ int main() {
 
   // Put the camera back a few units and look at origin.
   glm::mat4 view;
-  view = glm::lookAt(
-    glm::vec3(0.0f, 0.0f, 3.0f),
-    glm::vec3(0.0f, 0.0f, 0.0f),
-    glm::vec3(0.0f, 1.0f, 0.0f)
-  );
+  view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
   // Create a perspective projection to fit the viewport.
   GLfloat screenWidth = (GLfloat)fbWidth;
@@ -176,10 +180,18 @@ int main() {
   glm::mat4 projection;
   projection = glm::perspective(45.0f, screenWidth / screenHeight, 0.1f, 100.0f);
 
+  GLfloat delta = 0.0f;
+  GLfloat lastFrame = 0.0f;
+
   // Render loop.
   while (!glfwWindowShouldClose(window)) {
+    GLfloat currentFrame = glfwGetTime();
+    delta = currentFrame - lastFrame;
+    lastFrame = currentFrame;
+
     // Check and call events.
     glfwPollEvents();
+    move(delta);
 
     // Clear the screen to a nice blue color.
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -196,15 +208,8 @@ int main() {
     glBindTexture(GL_TEXTURE_2D, texture2);
     glUniform1i(glGetUniformLocation(shader.program, "texture2"), 1);
 
-    // Spin the camera round origin!
-    GLfloat radius = 10.0f;
-    GLfloat camX = sin(glfwGetTime()) * radius;
-    GLfloat camZ = cos(glfwGetTime()) * radius / 4;
-    view = glm::lookAt(
-      glm::vec3(camX, 0.0f, camZ),
-      glm::vec3(0.0f, 0.0f, 0.0f),
-      glm::vec3(0.0f, 1.0f, 0.0f)
-    );
+    // Update the view matrix with the camera's current values.
+    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
     // Pass the model, view, and projection matrices to get the vertices into
     // clip space (OpenGL will convert from clip space to coordinate space).
@@ -273,7 +278,24 @@ GLuint loadTexture(std::string filepath) {
   return texture;
 }
 
+void move(GLfloat delta) {
+  GLfloat cameraSpeed = 5.0f * delta;
+
+  // Movement keys.
+  if (keys[GLFW_KEY_W]) cameraPos += cameraSpeed * cameraFront;
+  if (keys[GLFW_KEY_S]) cameraPos -= cameraSpeed * cameraFront;
+  if (keys[GLFW_KEY_A]) cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+  if (keys[GLFW_KEY_D]) cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+}
+
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
+  // Keep key state using a key buffer of size 1024.
+  if (action == GLFW_PRESS) {
+    keys[key] = true;
+  } else if (action == GLFW_RELEASE) {
+    keys[key] = false;
+  }
+
   // Close the application when escape is pressed.
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, GL_TRUE);
