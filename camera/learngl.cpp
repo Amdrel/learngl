@@ -9,12 +9,13 @@
 #include <glm/gtc/type_ptr.hpp>
 
 extern "C" {
-  #include <GL/glew.h>
-  #include <GLFW/glfw3.h>
-  #include <SOIL/SOIL.h>
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <SOIL/SOIL.h>
 }
 
 #include "shader.h"
+#include "perspectivecamera.h"
 
 // Window constants for the initial window size.
 const GLuint kWindowWidth = 800;
@@ -22,24 +23,16 @@ const GLuint kWindowHeight = 600;
 
 // Coordinate system matrices.
 glm::mat4 model;
-glm::mat4 view;
-glm::mat4 projection;
 
-// Initialize the camera looking forward 3 units from origin.
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-
-// Pitch and yaw for an FPS camera.
-GLfloat pitch = 0.0f, yaw = -90.0f;
+// Perspecitve camera for 3D fun.
+PerspectiveCamera camera;
 
 // Aquire the initial x and y positions for mouse tracking (centered).
 GLfloat lastX = kWindowWidth / 2, lastY = kWindowHeight / 2;
 
 // Camera field of view.
-GLfloat fov = 45.0f;
-GLfloat startFov = fov;
-GLfloat targetFov = fov;
+GLfloat startFov = camera.fov;
+GLfloat targetFov = camera.fov;
 GLfloat fovTime = 0.0f;
 
 // Screen width and height for calculating the projection matrix. The window
@@ -205,13 +198,17 @@ int main() {
     glm::vec3(-1.3f,  1.0f, -1.5f)
   };
 
-  // Put the camera back a few units and look at origin.
-  view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
-  // Create a perspective projection to fit the viewport.
+  // Create a perspective camera to fit the viewport.
   screenWidth = (GLfloat)fbWidth;
   screenHeight = (GLfloat)fbHeight;
-  projection = glm::perspective(glm::radians(fov), screenWidth / screenHeight, 0.1f, 100.0f);
+  camera = PerspectiveCamera(
+    glm::vec3(0.0f, 0.0f, 3.0f),
+    glm::vec3(0.0f, glm::radians(-90.0f), 0.0f),
+    glm::radians(45.0f),
+    screenWidth / screenHeight,
+    0.1f,
+    100.0f
+  );
 
   GLfloat delta = 0.0f;
   GLfloat lastFrame = 0.0f;
@@ -241,25 +238,22 @@ int main() {
     glBindTexture(GL_TEXTURE_2D, texture2);
     glUniform1i(glGetUniformLocation(shader.program, "texture2"), 1);
 
-    // Update the view matrix with the camera's current values.
-    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
     const GLfloat limitTime = 1.0f;
     fovTime += delta;
+    if (fovTime > limitTime) {
+      fovTime = limitTime;
+    }
 
-    if (fovTime > limitTime) fovTime = limitTime;
-
-    fov = easeOutQuart(fovTime, startFov, (startFov - targetFov) * -1, limitTime);
-
-    // Updat the perspective to account for changes in fov.
-    projection = glm::perspective(glm::radians(fov), screenWidth / screenHeight, 0.1f, 100.0f);
+    // Update the perspective to account for changes in fov.
+    camera.fov = easeOutQuart(fovTime, startFov, (startFov - targetFov) * -1, limitTime);
+    camera.update();
 
     // Pass the model, view, and projection matrices to get the vertices into
     // clip space (OpenGL will convert from clip space to coordinate space).
     GLuint viewMatrix = glGetUniformLocation(shader.program, "view");
-    glUniformMatrix4fv(viewMatrix, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(viewMatrix, 1, GL_FALSE, glm::value_ptr(camera.view));
     GLuint projectionMatrix = glGetUniformLocation(shader.program, "projection");
-    glUniformMatrix4fv(projectionMatrix, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(projectionMatrix, 1, GL_FALSE, glm::value_ptr(camera.projection));
 
     glBindVertexArray(VAO);
     for (int i = 0; i < 10; i++) {
@@ -325,10 +319,10 @@ void move(GLfloat delta) {
   GLfloat cameraSpeed = 5.0f * delta;
 
   // Movement keys.
-  if (keys[GLFW_KEY_W]) cameraPos += cameraSpeed * cameraFront;
-  if (keys[GLFW_KEY_S]) cameraPos -= cameraSpeed * cameraFront;
-  if (keys[GLFW_KEY_A]) cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-  if (keys[GLFW_KEY_D]) cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+  if (keys[GLFW_KEY_W]) camera.position += cameraSpeed * camera.front;
+  if (keys[GLFW_KEY_S]) camera.position -= cameraSpeed * camera.front;
+  if (keys[GLFW_KEY_A]) camera.position -= glm::normalize(glm::cross(camera.front, camera.up)) * cameraSpeed;
+  if (keys[GLFW_KEY_D]) camera.position += glm::normalize(glm::cross(camera.front, camera.up)) * cameraSpeed;
 }
 
 GLfloat easeOutQuart(GLfloat t, GLfloat b, GLfloat c, GLfloat d) {
@@ -368,33 +362,26 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
 
   // Multiply the offset by the mouse sensitivity to prevent rapidly unplanned
   // seizures and the like.
-  GLfloat mouseSensitivity = 0.12f / (45.0f / fov);
+  GLfloat mouseSensitivity = 0.12f / (45.0f / camera.fov);
   xoffset *= mouseSensitivity;
   yoffset *= mouseSensitivity;
 
-  yaw += xoffset;
-  pitch += yoffset;
+  camera.rotation.y += xoffset;
+  camera.rotation.x += yoffset;
 
   // Constrain the pitch so the FPS camera does not do sick backflips.
-  if (pitch > 89.0f) pitch = 89.0f;
-  if (pitch < -89.0f) pitch = -89.0f;
+  if (camera.rotation.x > glm::radians(89.0f)) camera.rotation.x = glm::radians(89.0f);
+  if (camera.rotation.x < glm::radians(-89.0f)) camera.rotation.x = glm::radians(-89.0f);
 
-  // Update the camera's front vector with the new pitch and yaw values to
-  // change where it is pointing.
-  glm::vec3 front = glm::vec3(
-    cos(glm::radians(pitch)) * cos(glm::radians(yaw)),
-    sin(glm::radians(pitch)),
-    cos(glm::radians(pitch)) * sin(glm::radians(yaw))
-  );
-  cameraFront = glm::normalize(front);
+  camera.update();
 }
 
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
   fovTime = 0.0f;
-  startFov = fov;
-  targetFov -= yoffset * 3;
+  startFov = camera.fov;
+  targetFov -= glm::radians(yoffset * 3);
 
   // Constrain the fov (zoom).
-  if (targetFov < 1.0f) targetFov = 1.0f;
-  if (targetFov > 45.0f) targetFov = 45.0f;
+  if (targetFov < glm::radians(1.0f)) targetFov = glm::radians(1.0f);
+  if (targetFov > glm::radians(45.0f)) targetFov = glm::radians(45.0f);
 }
