@@ -43,7 +43,7 @@ void main() {
   vec3 specular = light.specular * spec * vec3(texture(material.specular, fragUv));
 
   // Sample the emission map for magic glows.
-  vec3 emission = max(vec3(texture(material.emission, fragUv)) * emissionColor, 0.0f);
+  vec3 emission = vec3(texture(material.emission, fragUv)) * emissionColor;
 
   color = vec4(ambient + diffuse + specular + emission, 1.0f);
 }

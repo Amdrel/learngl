@@ -249,7 +249,7 @@ int main() {
     glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
     glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
     glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
-    glm::vec3 emissionColorValue(sin(glfwGetTime()));
+    glm::vec3 emissionColorValue((sin(glfwGetTime()) + 1) / 2);
     // Pass light values.
     GLuint lightPos        = glGetUniformLocation(shader.program, "light.position");
     GLuint lightAmbient    = glGetUniformLocation(shader.program, "light.ambient");
