@@ -6,7 +6,6 @@ struct Material {
   vec3 specular;
   float shininess;
 };
-
 struct Light {
   vec3 position;
   vec3 ambient;
@@ -16,12 +15,14 @@ struct Light {
 
 in vec3 fragPos;
 in vec3 fragNormal;
+in vec2 fragUv;
 
 out vec4 color;
 
-uniform vec3 viewPos;
 uniform Material material;
 uniform Light light;
+uniform vec3 viewPos;
+uniform sampler2D texture1;
 
 void main() {
   // Calculate ambient light for the fragment.
@@ -41,6 +42,9 @@ void main() {
   float spec = pow(max(dot(viewDirection, reflectDirection), 0.0f), material.shininess);
   vec3 specular = light.specular * (spec * material.specular);
 
+  // Sample the texture for this fragment.
+  vec4 tex = texture(texture1, fragUv);
+
   vec3 result = ambient + diffuse + specular;
-  color = vec4(result, 1.0f);
+  color = vec4(result, 1.0f) * tex;
 }
