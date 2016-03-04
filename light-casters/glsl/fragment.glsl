@@ -22,6 +22,7 @@ out vec4 color;
 uniform Material material;
 uniform Light light;
 uniform vec3 viewPos;
+uniform vec3 emissionColor;
 
 void main() {
   // Calculate ambient light for the fragment.
@@ -42,7 +43,7 @@ void main() {
   vec3 specular = light.specular * spec * vec3(texture(material.specular, fragUv));
 
   // Sample the emission map for magic glows.
-  vec3 emission = vec3(texture(material.emission, fragUv));
+  vec3 emission = max(vec3(texture(material.emission, fragUv)) * emissionColor, 0.0f);
 
   color = vec4(ambient + diffuse + specular + emission, 1.0f);
 }
