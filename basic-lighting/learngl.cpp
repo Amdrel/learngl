@@ -240,13 +240,15 @@ int main() {
     normal = glm::mat3(glm::transpose(glm::inverse(model)));
     GLuint normalMatrix = glGetUniformLocation(shader.program, "normalMatrix");
     glUniformMatrix3fv(normalMatrix, 1, GL_FALSE, glm::value_ptr(normal));
-    // Pass light values.
+    // Pass values need for phong lighting.
     GLuint objectColor = glGetUniformLocation(shader.program, "objectColor");
-    GLuint lightColor = glGetUniformLocation(shader.program, "lightColor");
-    GLuint lightPos = glGetUniformLocation(shader.program, "lightPos");
     glUniform3f(objectColor, 1.0f, 0.5f, 0.31f);
+    GLuint lightColor = glGetUniformLocation(shader.program, "lightColor");
     glUniform3f(lightColor, 1.0f, 1.0f, 1.0f);
+    GLuint lightPos = glGetUniformLocation(shader.program, "lightPos");
     glUniform3f(lightPos, lightPosition.x, lightPosition.y, lightPosition.z);
+    GLuint viewPos = glGetUniformLocation(shader.program, "viewPos");
+    glUniform3f(viewPos, camera.position.x, camera.position.y, camera.position.z);
     // Draw the container.
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);

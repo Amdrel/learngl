@@ -8,6 +8,7 @@ out vec4 color;
 uniform vec3 objectColor;
 uniform vec3 lightColor;
 uniform vec3 lightPos;
+uniform vec3 viewPos;
 
 void main() {
   // Calculate ambient light for the fragment.
@@ -22,6 +23,13 @@ void main() {
   float diff = max(dot(normal, lightDirection), 0.0f);
   vec3 diffuse = diff * lightColor;
 
-  vec3 result = (ambient + diffuse) * objectColor;
+  // Calculate specular lighting for the fragment based on the view position.
+  float specularStrength = 0.5f;
+  vec3 viewDirection = normalize(viewPos - fragPos);
+  vec3 reflectDirection = reflect(-lightDirection, normal);
+  float spec = pow(max(dot(viewDirection, reflectDirection), 0.0f), 2);
+  vec3 specular = specularStrength * spec * lightColor;
+
+  vec3 result = (ambient + diffuse + specular) * objectColor;
   color = vec4(result, 1.0f);
 }
