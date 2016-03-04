@@ -1,16 +1,14 @@
 #version 330 core
 
-in vec2 fragTexCoord;
-
 out vec4 color;
 
-uniform sampler2D texture1;
-uniform sampler2D texture2;
+uniform vec3 objectColor;
+uniform vec3 lightColor;
 
 void main() {
-  // Mix the 2 textures and become one!
-  vec4 mixed = mix(texture(texture1, fragTexCoord), texture(texture2, fragTexCoord), 0.2);
+  float ambientStrength = 0.1f;
+  vec3 ambient = lightColor * ambientStrength;
 
-  // Set the fragment to the final color.
-  color = mixed;
+  vec3 result = objectColor * ambient;
+  color = vec4(result, 1.0f);
 }
