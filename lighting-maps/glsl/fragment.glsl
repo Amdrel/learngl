@@ -1,9 +1,9 @@
 #version 330 core
 
 struct Material {
-  vec3 ambient;
-  vec3 diffuse;
-  vec3 specular;
+  sampler2D diffuse;
+  sampler2D specular;
+  sampler2D emission;
   float shininess;
 };
 struct Light {
@@ -22,11 +22,10 @@ out vec4 color;
 uniform Material material;
 uniform Light light;
 uniform vec3 viewPos;
-uniform sampler2D texture1;
 
 void main() {
   // Calculate ambient light for the fragment.
-  vec3 ambient = light.ambient * material.ambient;
+  vec3 ambient = light.ambient * vec3(texture(material.diffuse, fragUv));
 
   // Calculate diffuse lighting for the fragment using the passed light source
   // in the uniform.
@@ -34,17 +33,16 @@ void main() {
   vec3 normal = normalize(fragNormal);
   vec3 lightDirection = normalize(light.position - fragPos);
   float diff = max(dot(normal, lightDirection), 0.0f);
-  vec3 diffuse = light.diffuse * (diff * material.diffuse);
+  vec3 diffuse = light.diffuse * diff * vec3(texture(material.diffuse, fragUv));
 
   // Calculate specular lighting for the fragment based on the view position.
   vec3 viewDirection = normalize(viewPos - fragPos);
   vec3 reflectDirection = reflect(-lightDirection, normal);
   float spec = pow(max(dot(viewDirection, reflectDirection), 0.0f), material.shininess);
-  vec3 specular = light.specular * (spec * material.specular);
+  vec3 specular = light.specular * spec * vec3(texture(material.specular, fragUv));
 
-  // Sample the texture for this fragment.
-  vec4 tex = texture(texture1, fragUv);
+  // Sample the emission map for magic glows.
+  vec3 emission = vec3(texture(material.emission, fragUv));
 
-  vec3 result = ambient + diffuse + specular;
-  color = vec4(result, 1.0f) * tex;
+  color = vec4(ambient + diffuse + specular + emission, 1.0f);
 }

@@ -109,6 +109,8 @@ int main() {
   Shader lampShader("glsl/lampvertex.glsl", "glsl/lampfragment.glsl");
 
   GLuint containerTexture = loadTexture("assets/container2.png");
+  GLuint containerSpecular = loadTexture("assets/container2_specular.png");
+  GLuint containerEmission = loadTexture("assets/matrix.jpg");
 
   // Container mesh data.
   GLfloat vertices[] = {
@@ -259,19 +261,21 @@ int main() {
     glUniform3f(lightSpecular, 1.0f, 1.0f, 1.0f);
     glUniform3f(viewPos, camera.position.x, camera.position.y, camera.position.z);
     // Pass material values.
-    GLuint materialAmbient   = glGetUniformLocation(shader.program, "material.ambient");
-    GLuint materialDiffuse   = glGetUniformLocation(shader.program, "material.diffuse");
-    GLuint materialSpecular  = glGetUniformLocation(shader.program, "material.specular");
     GLuint materialShininess = glGetUniformLocation(shader.program, "material.shininess");
-    glUniform3f(materialAmbient, 1.0f, 1.0f, 1.0f);
-    glUniform3f(materialDiffuse, 1.0f, 1.0f, 1.0f);
-    glUniform3f(materialSpecular, 0.5f, 0.5f, 0.5f);
-    glUniform1f(materialShininess, 32.0f);
-    // Pass the texture samples.
+    GLuint materialDiffuse = glGetUniformLocation(shader.program, "material.diffuse");
+    GLuint materialSpecular = glGetUniformLocation(shader.program, "material.specular");
+    GLuint materialEmission = glGetUniformLocation(shader.program, "material.emission");
+    glUniform1f(materialShininess, 64.0f);
+    glUniform1i(materialDiffuse, 0);
+    glUniform1i(materialSpecular, 1);
+    glUniform1i(materialEmission, 2);
+    // Bind the textures.
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, containerTexture);
-    GLuint texture1 = glGetUniformLocation(shader.program, "texture1");
-    glUniform1i(texture1, 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, containerSpecular);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, containerEmission);
     // Draw the container.
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
