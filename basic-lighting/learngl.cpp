@@ -21,8 +21,8 @@ extern "C" {
 const GLuint kWindowWidth = 800;
 const GLuint kWindowHeight = 600;
 
-// Coordinate system matrices.
 glm::mat4 model;
+glm::mat3 normal;
 
 // Perspecitve camera for 3D fun.
 PerspectiveCamera camera;
@@ -232,8 +232,14 @@ int main() {
     glUniformMatrix4fv(projectionMatrix, 1, GL_FALSE, glm::value_ptr(camera.projection));
     // Apply world transformations.
     model = glm::mat4();
+    model = glm::scale(model, glm::vec3(1.0f, 0.5f, 1.0f));
+    model = glm::rotate(model, (GLfloat)glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
     GLuint modelMatrix = glGetUniformLocation(shader.program, "model");
     glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
+    // Calculate the normal matrix on the CPU (keep them normals perpendicular).
+    normal = glm::mat3(glm::transpose(glm::inverse(model)));
+    GLuint normalMatrix = glGetUniformLocation(shader.program, "normalMatrix");
+    glUniformMatrix3fv(normalMatrix, 1, GL_FALSE, glm::value_ptr(normal));
     // Pass light values.
     GLuint objectColor = glGetUniformLocation(shader.program, "objectColor");
     GLuint lightColor = glGetUniformLocation(shader.program, "lightColor");
