@@ -71,7 +71,7 @@ void main() {
 
   // Sample the emission map for magic glows.
   vec3 emission = vec3(texture(material.emission, fragUv)) * emissionColor;
-  emission *= intensity * attenuation;
+  emission *= intensity * attenuation; // Intensity for a lens of truth effect.
 
   color = vec4(ambient + diffuse + specular + emission, 1.0f);
 }
