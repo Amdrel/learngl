@@ -7,7 +7,7 @@ struct Material {
   float shininess;
 };
 struct Light {
-  vec3 position;
+  vec3 direction;
   vec3 ambient;
   vec3 diffuse;
   vec3 specular;
@@ -32,7 +32,7 @@ void main() {
   // in the uniform.
   // TODO: Can light positions be passed as textures or in vertex attributes?
   vec3 normal = normalize(fragNormal);
-  vec3 lightDirection = normalize(light.position - fragPos);
+  vec3 lightDirection = normalize(-light.direction);
   float diff = max(dot(normal, lightDirection), 0.0f);
   vec3 diffuse = light.diffuse * diff * vec3(texture(material.diffuse, fragUv));
 

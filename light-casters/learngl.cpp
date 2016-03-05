@@ -157,6 +157,19 @@ int main() {
     -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
     -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
   };
+  // Positions all containers
+  glm::vec3 cubePositions[] = {
+    glm::vec3( 0.0f,  0.0f,  0.0f),
+    glm::vec3( 2.0f,  5.0f, -15.0f),
+    glm::vec3(-1.5f, -2.2f, -2.5f),
+    glm::vec3(-3.8f, -2.0f, -12.3f),
+    glm::vec3( 2.4f, -0.4f, -3.5f),
+    glm::vec3(-1.7f,  3.0f, -7.5f),
+    glm::vec3( 1.3f, -2.0f, -2.5f),
+    glm::vec3( 1.5f,  2.0f, -2.5f),
+    glm::vec3( 1.5f,  0.2f, -1.5f),
+    glm::vec3(-1.3f,  1.0f, -1.5f)
+  };
 
   // Create a VBO to store the vertex data, an EBO to store indice data, and
   // create a VAO to retain our vertex attribute pointers.
@@ -237,27 +250,19 @@ int main() {
     glUniformMatrix4fv(viewMatrix, 1, GL_FALSE, glm::value_ptr(camera.view));
     GLuint projectionMatrix = glGetUniformLocation(shader.program, "projection");
     glUniformMatrix4fv(projectionMatrix, 1, GL_FALSE, glm::value_ptr(camera.projection));
-    // Apply world transformations.
-    model = glm::mat4();
-    GLuint modelMatrix = glGetUniformLocation(shader.program, "model");
-    glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
-    // Calculate the normal matrix on the CPU (keep them normals perpendicular).
-    normal = glm::mat3(glm::transpose(glm::inverse(model)));
-    GLuint normalMatrix = glGetUniformLocation(shader.program, "normalMatrix");
-    glUniformMatrix3fv(normalMatrix, 1, GL_FALSE, glm::value_ptr(normal));
     // Generate light colors.
     glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
     glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
     glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
     glm::vec3 emissionColorValue((sin(glfwGetTime()) + 1) / 2);
     // Pass light values.
-    GLuint lightPos        = glGetUniformLocation(shader.program, "light.position");
-    GLuint lightAmbient    = glGetUniformLocation(shader.program, "light.ambient");
-    GLuint lightDiffuse    = glGetUniformLocation(shader.program, "light.diffuse");
-    GLuint lightSpecular   = glGetUniformLocation(shader.program, "light.specular");
-    GLuint viewPos         = glGetUniformLocation(shader.program, "viewPos");
-    GLuint emissionColor   = glGetUniformLocation(shader.program, "emissionColor");
-    glUniform3f(lightPos, lightPosition.x, lightPosition.y, lightPosition.z);
+    GLuint lightDir      = glGetUniformLocation(shader.program, "light.direction");
+    GLuint lightAmbient  = glGetUniformLocation(shader.program, "light.ambient");
+    GLuint lightDiffuse  = glGetUniformLocation(shader.program, "light.diffuse");
+    GLuint lightSpecular = glGetUniformLocation(shader.program, "light.specular");
+    GLuint viewPos       = glGetUniformLocation(shader.program, "viewPos");
+    GLuint emissionColor = glGetUniformLocation(shader.program, "emissionColor");
+    glUniform3f(lightDir, -0.2f, -1.0f, -0.3f);
     glUniform3f(lightAmbient, ambientColor.r, ambientColor.g, ambientColor.b);
     glUniform3f(lightDiffuse, diffuseColor.r, diffuseColor.g, diffuseColor.b);
     glUniform3f(lightSpecular, 1.0f, 1.0f, 1.0f);
@@ -265,9 +270,9 @@ int main() {
     glUniform3f(emissionColor, emissionColorValue.r, emissionColorValue.g, emissionColorValue.b);
     // Pass material values.
     GLuint materialShininess = glGetUniformLocation(shader.program, "material.shininess");
-    GLuint materialDiffuse = glGetUniformLocation(shader.program, "material.diffuse");
-    GLuint materialSpecular = glGetUniformLocation(shader.program, "material.specular");
-    GLuint materialEmission = glGetUniformLocation(shader.program, "material.emission");
+    GLuint materialDiffuse   = glGetUniformLocation(shader.program, "material.diffuse");
+    GLuint materialSpecular  = glGetUniformLocation(shader.program, "material.specular");
+    GLuint materialEmission  = glGetUniformLocation(shader.program, "material.emission");
     glUniform1f(materialShininess, 64.0f);
     glUniform1i(materialDiffuse, 0);
     glUniform1i(materialSpecular, 1);
@@ -279,8 +284,21 @@ int main() {
     glBindTexture(GL_TEXTURE_2D, containerSpecular);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, containerEmission);
-    // Draw the container.
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    // Draw multiple containers!
+    GLuint modelMatrix = glGetUniformLocation(shader.program, "model");
+    GLuint normalMatrix = glGetUniformLocation(shader.program, "normalMatrix");
+    for (GLuint i = 0; i < 10; i++) {
+      // Apply world transformations.
+      model = glm::mat4();
+      model = glm::translate(model, cubePositions[i]);
+      model = glm::rotate(model, i * 20.0f, glm::vec3(1.0f, 0.3f, 0.5f));
+      glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
+      // Calculate the normal matrix on the CPU (keep them normals perpendicular).
+      normal = glm::mat3(glm::transpose(glm::inverse(model)));
+      glUniformMatrix3fv(normalMatrix, 1, GL_FALSE, glm::value_ptr(normal));
+      // Draw the container.
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
     glBindVertexArray(0);
 
     // Draw the lamp.
