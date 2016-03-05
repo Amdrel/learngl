@@ -256,20 +256,26 @@ int main() {
     glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
     glm::vec3 emissionColorValue((sin(glfwGetTime() * 4) + 1) / 2);
     // Pass light values.
-    GLuint lightPos       = glGetUniformLocation(shader.program, "light.position");
-    GLuint lightAmbient   = glGetUniformLocation(shader.program, "light.ambient");
-    GLuint lightDiffuse   = glGetUniformLocation(shader.program, "light.diffuse");
-    GLuint lightSpecular  = glGetUniformLocation(shader.program, "light.specular");
-    GLuint lightConstant  = glGetUniformLocation(shader.program, "light.constant");
-    GLuint lightLinear    = glGetUniformLocation(shader.program, "light.linear");
-    GLuint lightQuadratic = glGetUniformLocation(shader.program, "light.quadratic");
-    glUniform3f(lightPos, lightPosition.x, lightPosition.y, lightPosition.z);
+    GLuint lightPos         = glGetUniformLocation(shader.program, "light.position");
+    GLuint lightDir         = glGetUniformLocation(shader.program, "light.direction");
+    GLuint lightAmbient     = glGetUniformLocation(shader.program, "light.ambient");
+    GLuint lightDiffuse     = glGetUniformLocation(shader.program, "light.diffuse");
+    GLuint lightSpecular    = glGetUniformLocation(shader.program, "light.specular");
+    GLuint lightConstant    = glGetUniformLocation(shader.program, "light.constant");
+    GLuint lightLinear      = glGetUniformLocation(shader.program, "light.linear");
+    GLuint lightQuadratic   = glGetUniformLocation(shader.program, "light.quadratic");
+    GLuint lightCutoff      = glGetUniformLocation(shader.program, "light.cutoff");
+    GLuint lightOuterCutoff = glGetUniformLocation(shader.program, "light.outerCutoff");
+    glUniform3f(lightPos, camera.position.x, camera.position.y, camera.position.z);
+    glUniform3f(lightDir, camera.front.x, camera.front.y, camera.front.z);
     glUniform3f(lightAmbient, ambientColor.r, ambientColor.g, ambientColor.b);
     glUniform3f(lightDiffuse, diffuseColor.r, diffuseColor.g, diffuseColor.b);
     glUniform3f(lightSpecular, 1.0f, 1.0f, 1.0f);
     glUniform1f(lightConstant, 1.0f);
     glUniform1f(lightLinear, 0.09f);
     glUniform1f(lightQuadratic, 0.032f);
+    glUniform1f(lightCutoff, glm::cos(glm::radians(12.5f)));
+    glUniform1f(lightCutoff, glm::cos(glm::radians(16.5f)));
     // Pass material values.
     GLuint materialShininess = glGetUniformLocation(shader.program, "material.shininess");
     GLuint materialDiffuse   = glGetUniformLocation(shader.program, "material.diffuse");

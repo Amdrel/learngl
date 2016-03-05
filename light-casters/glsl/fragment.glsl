@@ -9,6 +9,7 @@ struct Material {
 struct Light {
   // Coordinate info.
   vec3 position;
+  vec3 direction;
 
   // Colors.
   vec3 ambient;
@@ -19,6 +20,10 @@ struct Light {
   float constant;
   float linear;
   float quadratic;
+
+  // Spot light values.
+  float cutoff;
+  float outerCutoff;
 };
 
 in vec3 fragPos;
@@ -33,35 +38,46 @@ uniform vec3 viewPos;
 uniform vec3 emissionColor;
 
 void main() {
-  // Calculate ambient light for the fragment.
+  // Calculate the ambient light value for the fragment.
   vec3 ambient = light.ambient * vec3(texture(material.diffuse, fragUv));
 
-  // Calculate diffuse lighting for the fragment using the passed light source
-  // in the uniform.
-  // TODO: Can light positions be passed as textures or in vertex attributes?
-  vec3 normal = normalize(fragNormal);
+  // Calculate cutoff.
   vec3 lightDirection = normalize(light.position - fragPos);
-  float diff = max(dot(normal, lightDirection), 0.0f);
-  vec3 diffuse = light.diffuse * diff * vec3(texture(material.diffuse, fragUv));
+  float theta = dot(lightDirection, normalize(-light.direction));
+  float epsilon = light.cutoff - light.outerCutoff;
+  float intensity = clamp((theta - light.outerCutoff) / epsilon, 0.0f, 1.0f);
 
-  // Calculate specular lighting for the fragment based on the view position.
-  vec3 viewDirection = normalize(viewPos - fragPos);
-  vec3 reflectDirection = reflect(-lightDirection, normal);
-  float spec = pow(max(dot(viewDirection, reflectDirection), 0.0f), material.shininess);
-  vec3 specular = light.specular * spec * vec3(texture(material.specular, fragUv));
+  // Determine if lighting should apply to the fragment if the fragment falls
+  // withing the angle of the spotlight.
+  if (theta > light.cutoff) {
+    // Calculate diffuse lighting for the fragment using the passed light source
+    // in the uniform.
+    // TODO: Can light positions be passed as textures or in vertex attributes?
+    vec3 normal = normalize(fragNormal);
+    float diff = max(dot(normal, lightDirection), 0.0f);
+    vec3 diffuse = light.diffuse * diff * vec3(texture(material.diffuse, fragUv));
 
-  // Calculate attenuation for light intensity falloff.
-  float lightDistance = length(light.position - fragPos);
-  float attenuation = 1.0f / (light.constant + light.linear * lightDistance +
-    light.quadratic * (lightDistance * lightDistance));
+    // Calculate specular lighting for the fragment based on the view position.
+    vec3 viewDirection = normalize(viewPos - fragPos);
+    vec3 reflectDirection = reflect(-lightDirection, normal);
+    float spec = pow(max(dot(viewDirection, reflectDirection), 0.0f), material.shininess);
+    vec3 specular = light.specular * spec * vec3(texture(material.specular, fragUv));
 
-  // Apply attenuation to all light values.
-  ambient  *= attenuation;
-  diffuse  *= attenuation;
-  specular *= attenuation;
+    // Calculate attenuation for light intensity falloff.
+    float lightDistance = length(light.position - fragPos);
+    float attenuation = 1.0f / (light.constant + light.linear * lightDistance +
+      light.quadratic * (lightDistance * lightDistance));
 
-  // Sample the emission map for magic glows.
-  vec3 emission = vec3(texture(material.emission, fragUv)) * emissionColor;
+    // Apply attenuation to all light values.
+    diffuse  *= attenuation;
+    specular *= attenuation;
 
-  color = vec4(ambient + diffuse + specular + emission / 8, 1.0f);
+    // Sample the emission map for magic glows.
+    vec3 emission = vec3(texture(material.emission, fragUv)) * emissionColor;
+
+    color = vec4(ambient + diffuse + specular + emission, 1.0f);
+    return;
+  }
+
+  color = vec4(ambient, 1.0f);
 }
