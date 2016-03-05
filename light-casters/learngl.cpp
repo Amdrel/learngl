@@ -253,7 +253,7 @@ int main() {
     // Generate light colors.
     glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
     glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
-    glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
+    glm::vec3 ambientColor = diffuseColor * glm::vec3(0.4f);
     glm::vec3 emissionColorValue((sin(glfwGetTime() * 4) + 1) / 2);
     // Pass light values.
     GLuint lightPos         = glGetUniformLocation(shader.program, "light.position");
@@ -275,7 +275,7 @@ int main() {
     glUniform1f(lightLinear, 0.09f);
     glUniform1f(lightQuadratic, 0.032f);
     glUniform1f(lightCutoff, glm::cos(glm::radians(12.5f)));
-    glUniform1f(lightCutoff, glm::cos(glm::radians(16.5f)));
+    glUniform1f(lightOuterCutoff, glm::cos(glm::radians(15.5f)));
     // Pass material values.
     GLuint materialShininess = glGetUniformLocation(shader.program, "material.shininess");
     GLuint materialDiffuse   = glGetUniformLocation(shader.program, "material.diffuse");
