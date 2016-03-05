@@ -7,10 +7,18 @@ struct Material {
   float shininess;
 };
 struct Light {
-  vec3 direction;
+  // Coordinate info.
+  vec3 position;
+
+  // Colors.
   vec3 ambient;
   vec3 diffuse;
   vec3 specular;
+
+  // Attenuation.
+  float constant;
+  float linear;
+  float quadratic;
 };
 
 in vec3 fragPos;
@@ -32,7 +40,7 @@ void main() {
   // in the uniform.
   // TODO: Can light positions be passed as textures or in vertex attributes?
   vec3 normal = normalize(fragNormal);
-  vec3 lightDirection = normalize(-light.direction);
+  vec3 lightDirection = normalize(light.position - fragPos);
   float diff = max(dot(normal, lightDirection), 0.0f);
   vec3 diffuse = light.diffuse * diff * vec3(texture(material.diffuse, fragUv));
 
@@ -42,8 +50,18 @@ void main() {
   float spec = pow(max(dot(viewDirection, reflectDirection), 0.0f), material.shininess);
   vec3 specular = light.specular * spec * vec3(texture(material.specular, fragUv));
 
+  // Calculate attenuation for light intensity falloff.
+  float lightDistance = length(light.position - fragPos);
+  float attenuation = 1.0f / (light.constant + light.linear * lightDistance +
+    light.quadratic * (lightDistance * lightDistance));
+
+  // Apply attenuation to all light values.
+  ambient  *= attenuation;
+  diffuse  *= attenuation;
+  specular *= attenuation;
+
   // Sample the emission map for magic glows.
   vec3 emission = vec3(texture(material.emission, fragUv)) * emissionColor;
 
-  color = vec4(ambient + diffuse + specular + emission, 1.0f);
+  color = vec4(ambient + diffuse + specular + emission / 8, 1.0f);
 }

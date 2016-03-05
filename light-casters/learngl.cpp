@@ -254,20 +254,22 @@ int main() {
     glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
     glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
     glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
-    glm::vec3 emissionColorValue((sin(glfwGetTime()) + 1) / 2);
+    glm::vec3 emissionColorValue((sin(glfwGetTime() * 4) + 1) / 2);
     // Pass light values.
-    GLuint lightDir      = glGetUniformLocation(shader.program, "light.direction");
-    GLuint lightAmbient  = glGetUniformLocation(shader.program, "light.ambient");
-    GLuint lightDiffuse  = glGetUniformLocation(shader.program, "light.diffuse");
-    GLuint lightSpecular = glGetUniformLocation(shader.program, "light.specular");
-    GLuint viewPos       = glGetUniformLocation(shader.program, "viewPos");
-    GLuint emissionColor = glGetUniformLocation(shader.program, "emissionColor");
-    glUniform3f(lightDir, -0.2f, -1.0f, -0.3f);
+    GLuint lightPos       = glGetUniformLocation(shader.program, "light.position");
+    GLuint lightAmbient   = glGetUniformLocation(shader.program, "light.ambient");
+    GLuint lightDiffuse   = glGetUniformLocation(shader.program, "light.diffuse");
+    GLuint lightSpecular  = glGetUniformLocation(shader.program, "light.specular");
+    GLuint lightConstant  = glGetUniformLocation(shader.program, "light.constant");
+    GLuint lightLinear    = glGetUniformLocation(shader.program, "light.linear");
+    GLuint lightQuadratic = glGetUniformLocation(shader.program, "light.quadratic");
+    glUniform3f(lightPos, lightPosition.x, lightPosition.y, lightPosition.z);
     glUniform3f(lightAmbient, ambientColor.r, ambientColor.g, ambientColor.b);
     glUniform3f(lightDiffuse, diffuseColor.r, diffuseColor.g, diffuseColor.b);
     glUniform3f(lightSpecular, 1.0f, 1.0f, 1.0f);
-    glUniform3f(viewPos, camera.position.x, camera.position.y, camera.position.z);
-    glUniform3f(emissionColor, emissionColorValue.r, emissionColorValue.g, emissionColorValue.b);
+    glUniform1f(lightConstant, 1.0f);
+    glUniform1f(lightLinear, 0.09f);
+    glUniform1f(lightQuadratic, 0.032f);
     // Pass material values.
     GLuint materialShininess = glGetUniformLocation(shader.program, "material.shininess");
     GLuint materialDiffuse   = glGetUniformLocation(shader.program, "material.diffuse");
@@ -277,6 +279,11 @@ int main() {
     glUniform1i(materialDiffuse, 0);
     glUniform1i(materialSpecular, 1);
     glUniform1i(materialEmission, 2);
+    // Misc values.
+    GLuint viewPos       = glGetUniformLocation(shader.program, "viewPos");
+    GLuint emissionColor = glGetUniformLocation(shader.program, "emissionColor");
+    glUniform3f(viewPos, camera.position.x, camera.position.y, camera.position.z);
+    glUniform3f(emissionColor, emissionColorValue.r, emissionColorValue.g, emissionColorValue.b);
     // Bind the textures.
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, containerTexture);
@@ -284,6 +291,7 @@ int main() {
     glBindTexture(GL_TEXTURE_2D, containerSpecular);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, containerEmission);
+
     // Draw multiple containers!
     GLuint modelMatrix = glGetUniformLocation(shader.program, "model");
     GLuint normalMatrix = glGetUniformLocation(shader.program, "normalMatrix");
