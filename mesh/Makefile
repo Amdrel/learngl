@@ -14,7 +14,7 @@ else
 	LDFLAGS += -lglfw -lGL
 endif
 
-SOURCES=learngl.cpp shader.cpp perspectivecamera.cpp
+SOURCES=learngl.cpp shader.cpp mesh.cpp perspectivecamera.cpp
 OBJECTS=$(SOURCES:%.cpp=%.o)
 TARGET=learngl
 

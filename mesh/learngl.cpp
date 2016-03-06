@@ -17,6 +17,8 @@ extern "C" {
 #include "shader.h"
 #include "perspectivecamera.h"
 
+#define UNUSED(expr) (void)(expr)
+
 // Window constants for the initial window size.
 const GLuint kWindowWidth = 800;
 const GLuint kWindowHeight = 600;
@@ -260,8 +262,6 @@ int main() {
 
     // Generate light colors.
     glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
-    glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
-    glm::vec3 ambientColor = diffuseColor * glm::vec3(0.4f);
 
     // Directional light
     glUniform3f(glGetUniformLocation(shader.program, "dirLight.direction"), -0.2f, -1.0f, -0.3f);
@@ -438,6 +438,9 @@ GLfloat easeOutQuart(GLfloat t, GLfloat b, GLfloat c, GLfloat d) {
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
+  UNUSED(scancode);
+  UNUSED(mode);
+
   // Keep key state using a key buffer of size 1024.
   if (action == GLFW_PRESS) {
     keys[key] = true;
@@ -452,6 +455,8 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
 }
 
 void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
+  UNUSED(window);
+
   if (firstMouseEvent) {
     lastX = xpos;
     lastY = ypos;
@@ -483,6 +488,9 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
 }
 
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+  UNUSED(window);
+  UNUSED(xoffset);
+
   fovTime = 0.0f;
   startFov = camera.fov;
   targetFov -= glm::radians(yoffset * 3);
