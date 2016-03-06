@@ -16,6 +16,7 @@ extern "C" {
 
 #include "shader.h"
 #include "perspectivecamera.h"
+#include "model.h"
 
 #define UNUSED(expr) (void)(expr)
 
@@ -109,6 +110,7 @@ int main() {
   // the shader helper class.
   Shader shader("glsl/vertex.glsl", "glsl/fragment.glsl");
   Shader lampShader("glsl/lampvertex.glsl", "glsl/lampfragment.glsl");
+  Model crysisModel("assets/nanosuit.obj");
 
   GLuint containerTexture = loadTexture("assets/container2.png");
   GLuint containerSpecular = loadTexture("assets/container2_specular.png");
@@ -250,8 +252,6 @@ int main() {
     camera.fov = easeOutQuart(fovTime, startFov, (startFov - targetFov) * -1, limitTime);
     camera.update();
 
-    // Bind the VAO and shader.
-    glBindVertexArray(VAO);
     shader.use();
 
     // Pass the view and projection matrices from the camera.
@@ -266,13 +266,13 @@ int main() {
     // Directional light
     glUniform3f(glGetUniformLocation(shader.program, "dirLight.direction"), -0.2f, -1.0f, -0.3f);
     glUniform3f(glGetUniformLocation(shader.program, "dirLight.ambient"), 0.05f, 0.05f, 0.05f);
-    glUniform3f(glGetUniformLocation(shader.program, "dirLight.diffuse"), 0.4f, 0.4f, 0.4f);
-    glUniform3f(glGetUniformLocation(shader.program, "dirLight.specular"), 0.5f, 0.5f, 0.5f);
+    glUniform3f(glGetUniformLocation(shader.program, "dirLight.diffuse"), 0.8f, 0.8f, 0.8f);
+    glUniform3f(glGetUniformLocation(shader.program, "dirLight.specular"), 1.0f, 1.0f, 1.0f);
 
     // Point light 1
     glUniform3f(glGetUniformLocation(shader.program, "pointLights[0].position"), pointLightPositions[0].x, pointLightPositions[0].y, pointLightPositions[0].z);
     glUniform3f(glGetUniformLocation(shader.program, "pointLights[0].ambient"), 0.05f, 0.05f, 0.05f);
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[0].diffuse"), 1.0f, 0.0f, 0.0f);
+    glUniform3f(glGetUniformLocation(shader.program, "pointLights[0].diffuse"), 1.0f, 1.0f, 1.0f);
     glUniform3f(glGetUniformLocation(shader.program, "pointLights[0].specular"), 1.0f, 1.0f, 1.0f);
     glUniform1f(glGetUniformLocation(shader.program, "pointLights[0].constant"), 1.0f);
     glUniform1f(glGetUniformLocation(shader.program, "pointLights[0].linear"), 0.09);
@@ -281,7 +281,7 @@ int main() {
     // Point light 2
     glUniform3f(glGetUniformLocation(shader.program, "pointLights[1].position"), pointLightPositions[1].x, pointLightPositions[1].y, pointLightPositions[1].z);
     glUniform3f(glGetUniformLocation(shader.program, "pointLights[1].ambient"), 0.05f, 0.05f, 0.05f);
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[1].diffuse"), 0.0f, 1.0f, 0.0f);
+    glUniform3f(glGetUniformLocation(shader.program, "pointLights[1].diffuse"), 1.0f, 1.0f, 1.0f);
     glUniform3f(glGetUniformLocation(shader.program, "pointLights[1].specular"), 1.0f, 1.0f, 1.0f);
     glUniform1f(glGetUniformLocation(shader.program, "pointLights[1].constant"), 1.0f);
     glUniform1f(glGetUniformLocation(shader.program, "pointLights[1].linear"), 0.09);
@@ -290,7 +290,7 @@ int main() {
     // Point light 3
     glUniform3f(glGetUniformLocation(shader.program, "pointLights[2].position"), pointLightPositions[2].x, pointLightPositions[2].y, pointLightPositions[2].z);
     glUniform3f(glGetUniformLocation(shader.program, "pointLights[2].ambient"), 0.05f, 0.05f, 0.05f);
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[2].diffuse"), 0.0f, 0.0f, 1.0f);
+    glUniform3f(glGetUniformLocation(shader.program, "pointLights[2].diffuse"), 1.0f, 1.0f, 1.0f);
     glUniform3f(glGetUniformLocation(shader.program, "pointLights[2].specular"), 1.0f, 1.0f, 1.0f);
     glUniform1f(glGetUniformLocation(shader.program, "pointLights[2].constant"), 1.0f);
     glUniform1f(glGetUniformLocation(shader.program, "pointLights[2].linear"), 0.09);
@@ -299,7 +299,7 @@ int main() {
     // Point light 4
     glUniform3f(glGetUniformLocation(shader.program, "pointLights[3].position"), pointLightPositions[3].x, pointLightPositions[3].y, pointLightPositions[3].z);
     glUniform3f(glGetUniformLocation(shader.program, "pointLights[3].ambient"), 0.05f, 0.05f, 0.05f);
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[3].diffuse"), 0.8f, 0.8f, 0.8f);
+    glUniform3f(glGetUniformLocation(shader.program, "pointLights[3].diffuse"), 1.0f, 1.0f, 1.0f);
     glUniform3f(glGetUniformLocation(shader.program, "pointLights[3].specular"), 1.0f, 1.0f, 1.0f);
     glUniform1f(glGetUniformLocation(shader.program, "pointLights[3].constant"), 1.0f);
     glUniform1f(glGetUniformLocation(shader.program, "pointLights[3].linear"), 0.09);
@@ -339,22 +339,18 @@ int main() {
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, containerEmission);
 
-    // Draw multiple containers!
+    // Apply world transformations.
+    model = glm::mat4();
     GLuint modelMatrix = glGetUniformLocation(shader.program, "model");
+    glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
+
+    // Calculate the normal matrix on the CPU (keep them normals perpendicular).
+    normal = glm::mat3(glm::transpose(glm::inverse(model)));
     GLuint normalMatrix = glGetUniformLocation(shader.program, "normalMatrix");
-    for (GLuint i = 0; i < 10; i++) {
-      // Apply world transformations.
-      model = glm::mat4();
-      model = glm::translate(model, cubePositions[i]);
-      model = glm::rotate(model, i * 20.0f, glm::vec3(1.0f, 0.3f, 0.5f));
-      glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
-      // Calculate the normal matrix on the CPU (keep them normals perpendicular).
-      normal = glm::mat3(glm::transpose(glm::inverse(model)));
-      glUniformMatrix3fv(normalMatrix, 1, GL_FALSE, glm::value_ptr(normal));
-      // Draw the container.
-      glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
-    glBindVertexArray(0);
+    glUniformMatrix3fv(normalMatrix, 1, GL_FALSE, glm::value_ptr(normal));
+
+    // Draw the magic man!
+    crysisModel.draw(shader);
 
     // Bind the VAO and shader.
     glBindVertexArray(lightVAO);

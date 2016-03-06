@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <glm/glm.hpp>
+#include <assimp/scene.h>
 
 extern "C" {
 #include <GL/glew.h>
@@ -21,6 +22,7 @@ struct Vertex {
 struct Texture {
   GLuint id;
   std::string type;
+  aiString path;
 };
 
 class Mesh {

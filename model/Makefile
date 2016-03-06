@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-std=c++11 -Wall -Wextra -pedantic
+CXXFLAGS=-std=c++11 -Wall -Wextra -pedantic -g
 LDFLAGS=-lm -lGLEW -lSOIL -lassimp
 
 # Tack on platform specific linker flags. Why can't all the platforms just get
@@ -14,7 +14,7 @@ else
 	LDFLAGS += -lglfw -lGL
 endif
 
-SOURCES=learngl.cpp shader.cpp mesh.cpp perspectivecamera.cpp
+SOURCES=learngl.cpp shader.cpp mesh.cpp model.cpp perspectivecamera.cpp
 OBJECTS=$(SOURCES:%.cpp=%.o)
 TARGET=learngl
 

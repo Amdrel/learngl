@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "mesh.h"
 
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<GLuint> indices,
@@ -49,9 +51,9 @@ void Mesh::setup() {
 
 void Mesh::draw(Shader shader) {
   // Index counters for the different texture types.
-  GLuint diffuseIndex = 1;
-  GLuint specularIndex = 1;
-  GLuint emissionIndex = 1;
+  GLuint diffuseIndex = 0;
+  GLuint specularIndex = 0;
+  GLuint emissionIndex = 0;
 
   for (GLuint i = 0; i < textures.size(); i++) {
     std::string index;
@@ -59,11 +61,11 @@ void Mesh::draw(Shader shader) {
 
     // Get the string representation of the current texture's index depending on
     // the type of texture.
-    if (name == "diffuse") {
+    if (name == "texture_diffuse") {
       index = std::to_string(++diffuseIndex);
-    } else if (name == "specular") {
+    } else if (name == "texture_specular") {
       index = std::to_string(++specularIndex);
-    } else if (name == "emission") {
+    } else if (name == "texture_emission") {
       index += std::to_string(++emissionIndex);
     } else {
       continue;
@@ -71,6 +73,7 @@ void Mesh::draw(Shader shader) {
 
     // Set the material value for the given type to the correct index.
     glActiveTexture(GL_TEXTURE0 + i);
+    glBindTexture(GL_TEXTURE_2D, textures[i].id);
     glUniform1f(glGetUniformLocation(shader.program,
       ("material." + name + index).c_str()), i);
   }
