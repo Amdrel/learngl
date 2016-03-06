@@ -20,7 +20,7 @@ void main() {
   // and letting OpenGL interpolate it (since we are using out).
   fragPos = vec3(model * vec4(position, 1.0f));
   fragNormal = normalMatrix * normal;
-  fragUv = vec2(uv.x, 1.0f - uv.y);
+  fragUv = vec2(uv.x, uv.y);
 
   // Apply the object's transform to the vertex.
   gl_Position = projection * view * model * vec4(position, 1.0f);
