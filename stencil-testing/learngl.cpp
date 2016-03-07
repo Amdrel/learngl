@@ -244,6 +244,7 @@ int main() {
 
     glEnable(GL_DEPTH_TEST);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    glStencilMask(0xFF); // Enable writing to the stencil buffer.
 
     // Clear the screen to a nice blue color.
     glClearColor(0.1f, 0.15f, 0.15f, 1.0f);
@@ -376,39 +377,29 @@ int main() {
     modelMatrix = glGetUniformLocation(outlineShader.program, "model");
     glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
 
-    // Draw a border around the magic man.
-    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-    glStencilMask(0x00); // Disable writing to the stencil buffer.
-    glDisable(GL_DEPTH_TEST);
-    crysisModel.draw(outlineShader);
-
-    // Go back to sane defaults.
-    glStencilMask(0xFF); // Enable writing to the stencil buffer.
-    glEnable(GL_DEPTH_TEST); // Renable depth testing as it is the default.
-
     // Bind the VAO and shader.
-    //glBindVertexArray(lightVAO);
-    //lampShader.use();
+    glBindVertexArray(lightVAO);
+    lampShader.use();
 
-    //// Pass the view and projection matrices from the camera.
-    //viewMatrix = glGetUniformLocation(lampShader.program, "view");
-    //glUniformMatrix4fv(viewMatrix, 1, GL_FALSE, glm::value_ptr(camera.view));
-    //projectionMatrix = glGetUniformLocation(lampShader.program, "projection");
-    //glUniformMatrix4fv(projectionMatrix, 1, GL_FALSE, glm::value_ptr(camera.projection));
+    // Pass the view and projection matrices from the camera.
+    viewMatrix = glGetUniformLocation(lampShader.program, "view");
+    glUniformMatrix4fv(viewMatrix, 1, GL_FALSE, glm::value_ptr(camera.view));
+    projectionMatrix = glGetUniformLocation(lampShader.program, "projection");
+    glUniformMatrix4fv(projectionMatrix, 1, GL_FALSE, glm::value_ptr(camera.projection));
 
-    //for (GLuint i = 0; i < 4; i++) {
-    //  // Apply world transformations.
-    //  model = glm::mat4();
-    //  model = glm::translate(model, pointLightPositions[i]);
-    //  model = glm::scale(model, glm::vec3(0.2f));
+    for (GLuint i = 0; i < 4; i++) {
+      // Apply world transformations.
+      model = glm::mat4();
+      model = glm::translate(model, pointLightPositions[i]);
+      model = glm::scale(model, glm::vec3(0.2f));
 
-    //  modelMatrix = glGetUniformLocation(lampShader.program, "model");
-    //  glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
+      modelMatrix = glGetUniformLocation(lampShader.program, "model");
+      glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
 
-    //  // Draw the lamp.
-    //  glDrawArrays(GL_TRIANGLES, 0, 36);
-    //}
-    //glBindVertexArray(0);
+      // Draw the lamp.
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
+    glBindVertexArray(0);
 
     // Swap buffers used for double buffering.
     glfwSwapBuffers(window);
