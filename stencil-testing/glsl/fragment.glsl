@@ -153,7 +153,7 @@ void main() {
 
   // Add all the spot light values to the result.
   for (int i = 0; i < SPOT_LIGHT_COUNT; i++) {
-    //result += calcSpotLight(spotLights[i], normal, viewDir);
+    result += calcSpotLight(spotLights[i], normal, viewDir);
   }
 
   vec3 edgeColor = vec3(0.05f);
