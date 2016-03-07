@@ -106,6 +106,7 @@ int main() {
   // prevent overlapping polygon artifacts.
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_STENCIL_TEST);
+  glEnable(GL_CULL_FACE);
 
   // Read and compile the vertex and fragment shaders using
   // the shader helper class.
