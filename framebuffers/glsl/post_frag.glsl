@@ -10,9 +10,17 @@ uniform float time;
 const float offset = 1.0 / 600;
 
 void main() {
+  // Get the sine of time and add t to affect the sine wave depending on where
+  // the fragment is in the texture. Floor the addition so some vertical
+  // fragments get the same value giving off a retro feel.
   float wave = sin(time + floor(fragUv.t * 35) / 35) / 2;
 
+  // Sample using the wave calculation added ontop of the normal coordinate.
   vec2 coord = vec2(fragUv.s + wave / 2, fragUv.t);
   vec3 sample = vec3(texture(frameTexture, coord));
-  color = vec4(sample + clamp(wave, -0.025f, 0.0f), 1.0f);
+
+  // Scanline effect, just abuses the wave.
+  float scanline = clamp(wave, -0.025f, 0.0f)
+
+  color = vec4(sample + scanline, 1.0f);
 }
