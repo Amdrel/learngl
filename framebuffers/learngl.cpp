@@ -469,7 +469,9 @@ int main() {
 
     // Send the texture sampler to the shader.
     GLuint frameTexture = glGetUniformLocation(postShader.program, "frameTexture");
+    GLuint time = glGetUniformLocation(postShader.program, "time");
     glUniform1i(frameTexture, 0);
+    glUniform1f(time, glfwGetTime());
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, frameColorBuffer);
 
