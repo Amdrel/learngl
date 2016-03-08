@@ -14,5 +14,5 @@ void main() {
 
   vec2 coord = vec2(fragUv.s + wave / 2, fragUv.t);
   vec3 sample = vec3(texture(frameTexture, coord));
-  color = vec4(sample, 1.0f);
+  color = vec4(sample + clamp(wave, -0.025f, 0.0f), 1.0f);
 }
