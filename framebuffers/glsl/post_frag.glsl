@@ -20,7 +20,7 @@ void main() {
   vec3 sample = vec3(texture(frameTexture, coord));
 
   // Scanline effect, just abuses the wave.
-  float scanline = clamp(wave, -0.025f, 0.0f)
+  float scanline = clamp(wave, -0.025f, 0.0f);
 
   color = vec4(sample + scanline, 1.0f);
 }
