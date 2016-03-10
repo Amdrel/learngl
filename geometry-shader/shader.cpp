@@ -9,33 +9,12 @@ extern "C" {
 }
 
 Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath) {
-  // Read shader sources into memory.
+  // Read shader sources into memory and store them in std strings.
   std::string vertexShaderSource = readShader(vertexPath);
   std::string fragmentShaderSource = readShader(fragmentPath);
 
-  // Compile the vertex shader.
-  const char* vertexShaderSourceCStr = vertexShaderSource.c_str();
-  GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-  glShaderSource(vertexShader, 1, &vertexShaderSourceCStr, nullptr);
-  glCompileShader(vertexShader);
-
-  // Check the vertex shader.
-  if (!checkCompileStatus(vertexShader)) {
-    glfwTerminate();
-    exit(1);
-  }
-
-  // Compile the fragment shader.
-  const char* fragmentShaderSourceCStr = fragmentShaderSource.c_str();
-  GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(fragmentShader, 1, &fragmentShaderSourceCStr, nullptr);
-  glCompileShader(fragmentShader);
-
-  // Check the fragment shader.
-  if (!checkCompileStatus(fragmentShader)) {
-    glfwTerminate();
-    exit(1);
-  }
+  GLuint vertexShader = compile(GL_VERTEX_SHADER, vertexShaderSource.c_str());
+  GLuint fragmentShader = compile(GL_FRAGMENT_SHADER, fragmentShaderSource.c_str());
 
   // Link the vertex and fragment shaders to create the shader program.
   this->program = glCreateProgram();
@@ -52,6 +31,52 @@ Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath) {
   // Clean up the unlinked shaders as they are no longer needed.
   glDeleteShader(vertexShader);
   glDeleteShader(fragmentShader);
+}
+
+Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath,
+    const GLchar* geometryPath) {
+  // Read shader sources into memory and store them in std strings.
+  std::string vertexShaderSource = readShader(vertexPath);
+  std::string fragmentShaderSource = readShader(fragmentPath);
+  std::string geometryShaderSource = readShader(geometryPath);
+
+  GLuint vertexShader = compile(GL_VERTEX_SHADER, vertexShaderSource.c_str());
+  GLuint fragmentShader = compile(GL_FRAGMENT_SHADER, fragmentShaderSource.c_str());
+  GLuint geometryShader = compile(GL_GEOMETRY_SHADER, geometryShaderSource.c_str());
+
+  // Link the vertex and fragment shaders to create the shader program.
+  this->program = glCreateProgram();
+  glAttachShader(this->program, vertexShader);
+  glAttachShader(this->program, fragmentShader);
+  glAttachShader(this->program, geometryShader);
+  glLinkProgram(this->program);
+
+  // Verify the shaders linked successfully.
+  if (!checkLinkStatus()) {
+    glfwTerminate();
+    exit(1);
+  }
+
+  // Clean up the unlinked shaders as they are no longer needed.
+  glDeleteShader(vertexShader);
+  glDeleteShader(fragmentShader);
+  glDeleteShader(geometryShader);
+}
+
+GLuint Shader::compile(const GLuint type, const GLchar* src) {
+  // Compile the vertex shader.
+  GLuint shader = glCreateShader(type);
+  glShaderSource(shader, 1, &src, nullptr);
+  glCompileShader(shader);
+
+  // Check the vertex shader.
+  if (!checkCompileStatus(shader)) {
+    std::cerr << src << std::endl;
+    glfwTerminate();
+    exit(1);
+  }
+
+  return shader;
 }
 
 void Shader::use() {

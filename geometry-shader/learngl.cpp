@@ -110,7 +110,7 @@ int main() {
   Shader shader("glsl/vertex.glsl", "glsl/fragment.glsl");
   Shader lampShader("glsl/lampvertex.glsl", "glsl/lampfragment.glsl");
   Shader postShader("glsl/post_vert.glsl", "glsl/post_frag.glsl");
-  Shader gsShader("glsl/gs_vert.glsl", "glsl/gs_frag.glsl");
+  Shader gsShader("glsl/gs_vert.glsl", "glsl/gs_frag.glsl", "glsl/gs_geo.glsl");
 
   GLuint containerTexture = loadTexture("assets/container2.png");
   GLuint containerSpecular = loadTexture("assets/container2_specular.png");
