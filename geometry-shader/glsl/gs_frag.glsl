@@ -1,7 +1,11 @@
 #version 330 core
 
+in GS_OUT {
+  vec3 color;
+} frag_in;
+
 out vec4 color;
 
 void main() {
-  color = vec4(0.0f, 1.0f, 0.0f, 1.0f);
+  color = vec4(frag_in.color, 1.0f);
 }
