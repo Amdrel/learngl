@@ -110,6 +110,7 @@ int main() {
   Shader shader("glsl/vertex.glsl", "glsl/fragment.glsl");
   Shader lampShader("glsl/lampvertex.glsl", "glsl/lampfragment.glsl");
   Shader postShader("glsl/post_vert.glsl", "glsl/post_frag.glsl");
+  Shader gsShader("glsl/gs_vert.glsl", "glsl/gs_frag.glsl");
 
   GLuint containerTexture = loadTexture("assets/container2.png");
   GLuint containerSpecular = loadTexture("assets/container2_specular.png");
@@ -205,6 +206,15 @@ int main() {
     -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
     -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
   };
+
+  // Points for the geometry shader tutorial.
+  GLfloat points[] = {
+    -0.5f,  0.5f, // Top-left
+     0.5f,  0.5f, // Top-right
+     0.5f, -0.5f, // Bottom-right
+    -0.5f, -0.5f  // Bottom-left
+  };
+
   // Positions all containers
   glm::vec3 cubePositions[] = {
     glm::vec3( 0.0f,  0.0f,  0.0f),
@@ -275,6 +285,20 @@ int main() {
   glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat),
       (GLvoid*)(2 * sizeof(GLfloat)));
   glEnableVertexAttribArray(1);
+  glBindVertexArray(0);
+
+  // Create a VBO and VAO for the geometry shader test. The VBO will contain
+  // only the position.
+  GLuint pointsVBO, pointsVAO;
+  glGenVertexArrays(1, &pointsVAO);
+  glGenBuffers(1, &pointsVBO);
+
+  glBindVertexArray(pointsVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, pointsVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat),
+      (GLvoid*)0);
+  glEnableVertexAttribArray(0);
   glBindVertexArray(0);
 
   // Create a perspective camera to fit the viewport.
@@ -456,6 +480,11 @@ int main() {
       // Draw the lamp.
       glDrawArrays(GL_TRIANGLES, 0, 36);
     }
+    glBindVertexArray(0);
+
+    gsShader.use();
+    glBindVertexArray(pointsVAO);
+    glDrawArrays(GL_POINTS, 0, 4);
     glBindVertexArray(0);
 
     // Unbind the offscreen framebuffer containing the unprocessed frame.
