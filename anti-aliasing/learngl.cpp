@@ -23,6 +23,9 @@ extern "C" {
 const GLuint kWindowWidth = 800;
 const GLuint kWindowHeight = 600;
 
+// Number of default samples to use with MSAA.
+const GLuint kMSAASamples = 4;
+
 glm::mat4 model;
 glm::mat3 normal;
 
@@ -67,6 +70,7 @@ int main() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+  glfwWindowHint(GLFW_SAMPLES, 4);
   glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
   // Create a fixed 800x600 window that is not resizable.
@@ -101,6 +105,9 @@ int main() {
   glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
   glViewport(0, 0, fbWidth, fbHeight);
 
+  // Enable multisampling for using MSAA.
+  glEnable(GL_MULTISAMPLE);
+
   // Enable use of the depth buffer since we're working on 3D and want to
   // prevent overlapping polygon artifacts.
   glEnable(GL_DEPTH_TEST);
@@ -123,26 +130,24 @@ int main() {
 
   // Create an empty texture to be attached to the framebuffer.
   // Give a null pointer to glTexImage2D since we want an empty texture.
-  GLuint frameColorBuffer;
-  glGenTextures(1, &frameColorBuffer);
-  glBindTexture(GL_TEXTURE_2D, frameColorBuffer);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, fbWidth, fbHeight, 0, GL_RGB,
-      GL_UNSIGNED_BYTE, nullptr);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glBindTexture(GL_TEXTURE_2D, 0);
+  GLuint frameColorBufferMultiSampled;
+  glGenTextures(1, &frameColorBufferMultiSampled);
+  glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, frameColorBufferMultiSampled);
+  glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, kMSAASamples, GL_RGB,
+      fbWidth, fbHeight, GL_TRUE);
+  glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
 
   // Attach the texture to the framebuffer.
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-      frameColorBuffer, 0);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+      GL_TEXTURE_2D_MULTISAMPLE, frameColorBufferMultiSampled, 0);
 
   // Create a renderbuffer to hold our depth and stencil buffers with a size
   // of the window's framebuffer size.
   GLuint RBO;
   glGenRenderbuffers(1, &RBO);
   glBindRenderbuffer(GL_RENDERBUFFER, RBO);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8,
-      fbWidth, fbHeight);
+  glRenderbufferStorageMultisample(GL_RENDERBUFFER, kMSAASamples,
+      GL_DEPTH24_STENCIL8, fbWidth, fbHeight);
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
   // Attach the render buffer (provides depth and stencil) to the framebuffer.
@@ -156,9 +161,32 @@ int main() {
     glfwTerminate();
     return 1;
   }
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  // Unbind the framebuffer since we want the main scene to be drawn
-  // to be drawn to the main window.
+  // Generate texture for intermediate stage.
+  GLuint screenTexture;
+  glGenTextures(1, &screenTexture);
+  glBindTexture(GL_TEXTURE_2D, screenTexture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, fbWidth, fbHeight, 0, GL_RGB,
+      GL_UNSIGNED_BYTE, nullptr);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  // Second framebuffer for post.
+  GLuint intermediateFBO;
+  glGenFramebuffers(1, &intermediateFBO);
+  glBindFramebuffer(GL_FRAMEBUFFER, intermediateFBO);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+      screenTexture, 0);
+
+  // Panic if the framebuffer is somehow incomplete at this stage. This should
+  // never happen if we attached the texture but it's good practice to check.
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+    std::cerr << "ERROR: Framebuffer is not complete!" << std::endl;
+    glfwTerminate();
+    return 1;
+  }
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   // Container mesh data.
@@ -495,6 +523,11 @@ int main() {
     //glBindVertexArray(0);
     //glEnable(GL_DEPTH_TEST);
 
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, FBO);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO);
+    glBlitFramebuffer(0, 0, fbWidth, fbHeight, 0, 0, fbWidth, fbHeight,
+        GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
     // Unbind the offscreen framebuffer containing the unprocessed frame.
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -510,7 +543,7 @@ int main() {
     glUniform1i(frameTexture, 0);
     glUniform1f(time, glfwGetTime());
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, frameColorBuffer);
+    glBindTexture(GL_TEXTURE_2D, screenTexture);
 
     // Render the color buffer in the framebuffer to the quad with post shader.
     glDrawArrays(GL_TRIANGLES, 0, 6);
