@@ -108,6 +108,9 @@ int main() {
   // Enable multisampling for using MSAA.
   glEnable(GL_MULTISAMPLE);
 
+  // Enabled SRGB for gamma correction.
+  glEnable(GL_FRAMEBUFFER_SRGB);
+
   // Enable use of the depth buffer since we're working on 3D and want to
   // prevent overlapping polygon artifacts.
   glEnable(GL_DEPTH_TEST);
@@ -584,7 +587,7 @@ GLuint loadTexture(std::string filepath) {
 
   // Load the image data to the currently bound texture. Also create some
   // mipmaps for it for perf.
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
   glGenerateMipmap(GL_TEXTURE_2D);
 
   // Free the image and unbind the texture.
