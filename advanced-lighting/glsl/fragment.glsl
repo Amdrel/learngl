@@ -59,11 +59,11 @@ uniform vec3 viewPos; // Used for specular calculation.
 vec3 calcDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir) {
   // Calculate prerequisites for the light calculations.
   vec3 lightDir = normalize(-light.direction);
-  vec3 reflectDir = reflect(-lightDir, normal);
+  vec3 halfwayDir = normalize(lightDir + viewDir);
 
   // Calculate the light multipliers using the light formulae.
   float diff = max(dot(normal, lightDir), 0.0f);
-  float spec = pow(max(dot(viewDir, reflectDir), 0.0f), material.shininess);
+  float spec = pow(max(dot(normal, halfwayDir), 0.0f), material.shininess);
 
   // Sample the material's diffuse and multiply the colors and the light values.
   vec3 ambient = light.ambient * vec3(texture(material.diffuse, frag_in.uv));
@@ -76,11 +76,11 @@ vec3 calcDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir) {
 vec3 calcPointLight(PointLight light, vec3 normal, vec3 viewDir) {
   // Calculate prerequisites for the light calculations.
   vec3 lightDir = normalize(light.position - frag_in.position);
-  vec3 reflectDir = reflect(-lightDir, normal);
+  vec3 halfwayDir = normalize(lightDir + viewDir);
 
   // Calculate light multipliers.
   float diff = max(dot(normal, lightDir), 0.0f);
-  float spec = pow(max(dot(viewDir, reflectDir), 0.0f), material.shininess);
+  float spec = pow(max(dot(normal, halfwayDir), 0.0f), material.shininess);
 
   // Sample the material's diffuse and multiply the colors and the light values.
   vec3 ambient = light.ambient * vec3(texture(material.diffuse, frag_in.uv));
@@ -103,11 +103,11 @@ vec3 calcPointLight(PointLight light, vec3 normal, vec3 viewDir) {
 vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 viewDir) {
   // Calculate prerequisites for the light calculations.
   vec3 lightDir = normalize(light.position - frag_in.position);
-  vec3 reflectDir = reflect(-lightDir, normal);
+  vec3 halfwayDir = normalize(lightDir + viewDir);
 
   // Calculate light multipliers.
   float diff = max(dot(normal, lightDir), 0.0f);
-  float spec = pow(max(dot(viewDir, reflectDir), 0.0f), material.shininess);
+  float spec = pow(max(dot(normal, halfwayDir), 0.0f), material.shininess);
 
   // Sample the material's diffuse and multiply the colors and the light values.
   vec3 ambient = light.ambient * vec3(texture(material.diffuse, frag_in.uv));
@@ -152,9 +152,9 @@ void main() {
   }
 
   // Add all the spot light values to the result.
-  for (int i = 0; i < SPOT_LIGHT_COUNT; i++) {
-    result += calcSpotLight(spotLights[i], normal, viewDir);
-  }
+  //for (int i = 0; i < SPOT_LIGHT_COUNT; i++) {
+  //  result += calcSpotLight(spotLights[i], normal, viewDir);
+  //}
 
   color = vec4(result, 1.0f);
 }
