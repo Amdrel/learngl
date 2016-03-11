@@ -1,5 +1,11 @@
 #version 330 core
 
+// Why isn't this available in GLSL in the first place?
+#define PI 3.14159265
+
+#define POINT_LIGHT_COUNT 4
+#define SPOT_LIGHT_COUNT 1
+
 struct Material {
   sampler2D diffuse;
   sampler2D specular;
@@ -46,9 +52,6 @@ out vec4 color; // Final fragment color.
 // Material chosen for the object.
 uniform Material material;
 
-#define POINT_LIGHT_COUNT 4
-#define SPOT_LIGHT_COUNT 1
-
 // Lights of all kinds.
 uniform DirectionalLight dirLight;
 uniform PointLight pointLights[POINT_LIGHT_COUNT];
@@ -57,13 +60,17 @@ uniform SpotLight spotLights[SPOT_LIGHT_COUNT];
 uniform vec3 viewPos; // Used for specular calculation.
 
 vec3 calcDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir) {
+  // Find energy conservation multiplier so shininess values for phong materials
+  // have a similar brightness for blinn-phong shininess.
+  float energyConservation = (8.0f + material.shininess) / (8.0f * PI);
+
   // Calculate prerequisites for the light calculations.
   vec3 lightDir = normalize(-light.direction);
   vec3 halfwayDir = normalize(lightDir + viewDir);
 
   // Calculate the light multipliers using the light formulae.
   float diff = max(dot(normal, lightDir), 0.0f);
-  float spec = pow(max(dot(normal, halfwayDir), 0.0f), material.shininess);
+  float spec = energyConservation * pow(max(dot(normal, halfwayDir), 0.0f), material.shininess);
 
   // Sample the material's diffuse and multiply the colors and the light values.
   vec3 ambient = light.ambient * vec3(texture(material.diffuse, frag_in.uv));
@@ -74,13 +81,17 @@ vec3 calcDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir) {
 }
 
 vec3 calcPointLight(PointLight light, vec3 normal, vec3 viewDir) {
+  // Find energy conservation multiplier so shininess values for phong materials
+  // have a similar brightness for blinn-phong shininess.
+  float energyConservation = (8.0f + material.shininess) / (8.0f * PI);
+
   // Calculate prerequisites for the light calculations.
   vec3 lightDir = normalize(light.position - frag_in.position);
   vec3 halfwayDir = normalize(lightDir + viewDir);
 
   // Calculate light multipliers.
   float diff = max(dot(normal, lightDir), 0.0f);
-  float spec = pow(max(dot(normal, halfwayDir), 0.0f), material.shininess);
+  float spec = energyConservation *  pow(max(dot(normal, halfwayDir), 0.0f), material.shininess);
 
   // Sample the material's diffuse and multiply the colors and the light values.
   vec3 ambient = light.ambient * vec3(texture(material.diffuse, frag_in.uv));
@@ -101,13 +112,17 @@ vec3 calcPointLight(PointLight light, vec3 normal, vec3 viewDir) {
 }
 
 vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 viewDir) {
+  // Find energy conservation multiplier so shininess values for phong materials
+  // have a similar brightness for blinn-phong shininess.
+  float energyConservation = (8.0f + material.shininess) / (8.0f * PI);
+
   // Calculate prerequisites for the light calculations.
   vec3 lightDir = normalize(light.position - frag_in.position);
   vec3 halfwayDir = normalize(lightDir + viewDir);
 
   // Calculate light multipliers.
   float diff = max(dot(normal, lightDir), 0.0f);
-  float spec = pow(max(dot(normal, halfwayDir), 0.0f), material.shininess);
+  float spec = energyConservation * pow(max(dot(normal, halfwayDir), 0.0f), material.shininess);
 
   // Sample the material's diffuse and multiply the colors and the light values.
   vec3 ambient = light.ambient * vec3(texture(material.diffuse, frag_in.uv));

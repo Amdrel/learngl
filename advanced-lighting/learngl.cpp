@@ -399,8 +399,8 @@ int main() {
     // Directional light
     glUniform3f(glGetUniformLocation(shader.program, "dirLight.direction"), -0.2f, -1.0f, -0.3f);
     glUniform3f(glGetUniformLocation(shader.program, "dirLight.ambient"), 0.05f, 0.05f, 0.05f);
-    glUniform3f(glGetUniformLocation(shader.program, "dirLight.diffuse"), 0.4f, 0.4f, 0.4f);
-    glUniform3f(glGetUniformLocation(shader.program, "dirLight.specular"), 0.5f, 0.5f, 0.5f);
+    glUniform3f(glGetUniformLocation(shader.program, "dirLight.diffuse"), 0.0f, 0.0f, 0.0f);
+    glUniform3f(glGetUniformLocation(shader.program, "dirLight.specular"), 0.0f, 0.0f, 0.0f);
 
     // Point light 1
     glUniform3f(glGetUniformLocation(shader.program, "pointLights[0].position"), pointLightPositions[0].x, pointLightPositions[0].y, pointLightPositions[0].z);
@@ -455,7 +455,7 @@ int main() {
     GLuint materialDiffuse   = glGetUniformLocation(shader.program, "material.diffuse");
     GLuint materialSpecular  = glGetUniformLocation(shader.program, "material.specular");
     GLuint materialEmission  = glGetUniformLocation(shader.program, "material.emission");
-    glUniform1f(materialShininess, 64.0f);
+    glUniform1f(materialShininess, 32.0f);
     glUniform1i(materialDiffuse, 0);
     glUniform1i(materialSpecular, 1);
     glUniform1i(materialEmission, 2);
