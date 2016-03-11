@@ -400,9 +400,9 @@ int main() {
     glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
 
     // Directional light
-    glUniform3f(glGetUniformLocation(shader.program, "dirLight.direction"), -0.2f, -1.0f, -0.3f);
+    glUniform3f(glGetUniformLocation(shader.program, "dirLight.direction"), 0.0f, -1.0f, 0.0f);
     glUniform3f(glGetUniformLocation(shader.program, "dirLight.ambient"), 0.05f, 0.05f, 0.05f);
-    glUniform3f(glGetUniformLocation(shader.program, "dirLight.diffuse"), 0.0f, 0.0f, 0.0f);
+    glUniform3f(glGetUniformLocation(shader.program, "dirLight.diffuse"), 1.0f, 1.0f, 1.0f);
     glUniform3f(glGetUniformLocation(shader.program, "dirLight.specular"), 0.0f, 0.0f, 0.0f);
 
     // Point light 1
