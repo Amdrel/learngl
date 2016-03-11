@@ -107,7 +107,7 @@ int main() {
 
   // Read and compile the vertex and fragment shaders using
   // the shader helper class.
-  Shader shader("glsl/vertex.glsl", "glsl/fragment.glsl");
+  Shader shader("glsl/vertex.glsl", "glsl/fragment.glsl", "glsl/geometry.glsl");
   Shader lampShader("glsl/lampvertex.glsl", "glsl/lampfragment.glsl");
   Shader postShader("glsl/post_vert.glsl", "glsl/post_frag.glsl");
   Shader gsShader("glsl/gs_vert.glsl", "glsl/gs_frag.glsl", "glsl/gs_geo.glsl");
@@ -435,6 +435,8 @@ int main() {
     // Misc values.
     GLuint viewPos = glGetUniformLocation(shader.program, "viewPos");
     glUniform3f(viewPos, camera.position.x, camera.position.y, camera.position.z);
+    GLuint time = glGetUniformLocation(shader.program, "time");
+    glUniform1f(time, glfwGetTime());
 
     // Bind the textures.
     glActiveTexture(GL_TEXTURE0);
@@ -486,12 +488,12 @@ int main() {
     glBindVertexArray(0);
 
     // Draw something with the geometry shader program.
-    glDisable(GL_DEPTH_TEST);
-    gsShader.use();
-    glBindVertexArray(pointsVAO);
-    glDrawArrays(GL_POINTS, 0, 4);
-    glBindVertexArray(0);
-    glEnable(GL_DEPTH_TEST);
+    //glDisable(GL_DEPTH_TEST);
+    //gsShader.use();
+    //glBindVertexArray(pointsVAO);
+    //glDrawArrays(GL_POINTS, 0, 4);
+    //glBindVertexArray(0);
+    //glEnable(GL_DEPTH_TEST);
 
     // Unbind the offscreen framebuffer containing the unprocessed frame.
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -504,7 +506,7 @@ int main() {
 
     // Send the texture sampler to the shader.
     GLuint frameTexture = glGetUniformLocation(postShader.program, "frameTexture");
-    GLuint time = glGetUniformLocation(postShader.program, "time");
+    time = glGetUniformLocation(postShader.program, "time");
     glUniform1i(frameTexture, 0);
     glUniform1f(time, glfwGetTime());
     glActiveTexture(GL_TEXTURE0);
