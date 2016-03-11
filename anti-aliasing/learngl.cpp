@@ -24,7 +24,7 @@ const GLuint kWindowWidth = 800;
 const GLuint kWindowHeight = 600;
 
 // Number of default samples to use with MSAA.
-const GLuint kMSAASamples = 4;
+const GLuint kMSAASamples = 32;
 
 glm::mat4 model;
 glm::mat3 normal;
