@@ -1,0 +1,34 @@
+#version 330 core
+
+layout (points) in;
+layout (triangle_strip, max_vertices = 5) out;
+
+// Color data from the vertex shader.
+in VS_OUT {
+  vec3 color;
+} gs_in[];
+
+out GS_OUT {
+  vec3 color;
+} gs_out;
+
+void build_house(vec4 position) {
+  gs_out.color = gs_in[0].color;
+  gl_Position = position + vec4(-0.2f, -0.2f, 0.0f, 0.0f); // 1:bottom-left
+  EmitVertex();
+  gl_Position = position + vec4( 0.2f, -0.2f, 0.0f, 0.0f); // 2:bottom-right
+  EmitVertex();
+  gl_Position = position + vec4(-0.2f,  0.2f, 0.0f, 0.0f); // 3:top-left
+  EmitVertex();
+  gl_Position = position + vec4( 0.2f,  0.2f, 0.0f, 0.0f); // 4:top-right
+  EmitVertex();
+  gs_out.color = vec3(1.0f, 1.0f, 1.0f);
+  gl_Position = position + vec4( 0.0f,  0.4f, 0.0f, 0.0f); // 5:top
+  EmitVertex();
+
+  EndPrimitive();
+}
+
+void main() {
+  build_house(gl_in[0].gl_Position);
+}
