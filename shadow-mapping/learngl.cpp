@@ -26,6 +26,10 @@ const GLuint kWindowHeight = 600;
 // Number of default samples to use with MSAA.
 const GLuint kMSAASamples = 32;
 
+// Shadow depth map size.
+const GLuint kShadowWidth = 1024;
+const GLuint kShadowHeight = 1024;
+
 glm::mat4 model;
 glm::mat3 normal;
 
@@ -260,6 +264,35 @@ int main() {
   }
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+  // Create a texture to hold the depth map data.
+  // The depth map is used for shadow mapping.
+  GLuint depthMap;
+  glGenTextures(1, &depthMap);
+  glBindTexture(GL_TEXTURE_2D, depthMap);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, kShadowWidth,
+      kShadowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  GLuint depthMapFBO;
+  glGenFramebuffers(1, &depthMapFBO);
+  glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+  glDrawBuffer(GL_NONE);
+  glReadBuffer(GL_NONE);
+
+  // Panic if the framebuffer is somehow incomplete at this stage. This should
+  // never happen if we attached the texture but it's good practice to check.
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+    std::cerr << "ERROR: Framebuffer is not complete!" << std::endl;
+    glfwTerminate();
+    return 1;
+  }
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
   // Create a VBO to store the vertex data, an EBO to store indice data, and
   // create a VAO to retain our vertex attribute pointers.
   GLuint VBO, VAO;
@@ -369,6 +402,16 @@ int main() {
     glfwPollEvents();
     move(delta);
 
+    // Render to the depth map for shadow mapping.
+    glViewport(0, 0, kShadowWidth, kShadowHeight);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // Set viewport to window framebuffer size for rendering the scene.
+    glViewport(0, 0, fbWidth, fbHeight);
+
     // Bind the off screen framebuffer (for post-processing) and clear the
     // screen to a nice blue color.
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
@@ -405,53 +448,20 @@ int main() {
     glUniform3f(glGetUniformLocation(shader.program, "dirLight.diffuse"), 1.0f, 1.0f, 1.0f);
     glUniform3f(glGetUniformLocation(shader.program, "dirLight.specular"), 0.0f, 0.0f, 0.0f);
 
-    // Point light 1
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[0].position"), pointLightPositions[0].x, pointLightPositions[0].y, pointLightPositions[0].z);
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[0].ambient"), 0.05f, 0.05f, 0.05f);
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[0].diffuse"), 1.0f, 1.0f, 1.0f);
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[0].specular"), 1.0f, 1.0f, 1.0f);
-    glUniform1f(glGetUniformLocation(shader.program, "pointLights[0].constant"), 1.0f);
-    glUniform1f(glGetUniformLocation(shader.program, "pointLights[0].linear"), 0.09);
-    glUniform1f(glGetUniformLocation(shader.program, "pointLights[0].quadratic"), 0.032);
+    for (int i = 0; i < 4; i++) {
+      // Uniform arrays can have values set using an index via string
+      // representation.
+      std::string index = std::to_string(i);
 
-    // Point light 2
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[1].position"), pointLightPositions[1].x, pointLightPositions[1].y, pointLightPositions[1].z);
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[1].ambient"), 0.05f, 0.05f, 0.05f);
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[1].diffuse"), 1.0f, 1.0f, 1.0f);
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[1].specular"), 1.0f, 1.0f, 1.0f);
-    glUniform1f(glGetUniformLocation(shader.program, "pointLights[1].constant"), 1.0f);
-    glUniform1f(glGetUniformLocation(shader.program, "pointLights[1].linear"), 0.09);
-    glUniform1f(glGetUniformLocation(shader.program, "pointLights[1].quadratic"), 0.032);
-
-    // Point light 3
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[2].position"), pointLightPositions[2].x, pointLightPositions[2].y, pointLightPositions[2].z);
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[2].ambient"), 0.05f, 0.05f, 0.05f);
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[2].diffuse"), 1.0f, 1.0f, 1.0f);
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[2].specular"), 1.0f, 1.0f, 1.0f);
-    glUniform1f(glGetUniformLocation(shader.program, "pointLights[2].constant"), 1.0f);
-    glUniform1f(glGetUniformLocation(shader.program, "pointLights[2].linear"), 0.09);
-    glUniform1f(glGetUniformLocation(shader.program, "pointLights[2].quadratic"), 0.032);
-
-    // Point light 4
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[3].position"), pointLightPositions[3].x, pointLightPositions[3].y, pointLightPositions[3].z);
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[3].ambient"), 0.05f, 0.05f, 0.05f);
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[3].diffuse"), 1.0f, 1.0f, 1.0f);
-    glUniform3f(glGetUniformLocation(shader.program, "pointLights[3].specular"), 1.0f, 1.0f, 1.0f);
-    glUniform1f(glGetUniformLocation(shader.program, "pointLights[3].constant"), 1.0f);
-    glUniform1f(glGetUniformLocation(shader.program, "pointLights[3].linear"), 0.09);
-    glUniform1f(glGetUniformLocation(shader.program, "pointLights[3].quadratic"), 0.032);
-
-    // Sport light 1
-    glUniform3f(glGetUniformLocation(shader.program, "spotLights[0].position"), camera.position.x, camera.position.y, camera.position.z);
-    glUniform3f(glGetUniformLocation(shader.program, "spotLights[0].direction"), camera.front.x, camera.front.y, camera.front.z);
-    glUniform3f(glGetUniformLocation(shader.program, "spotLights[0].ambient"), 0.0f, 0.0f, 0.0f);
-    glUniform3f(glGetUniformLocation(shader.program, "spotLights[0].diffuse"), 1.0f, 1.0f, 1.0f);
-    glUniform3f(glGetUniformLocation(shader.program, "spotLights[0].specular"), 1.0f, 1.0f, 1.0f);
-    glUniform1f(glGetUniformLocation(shader.program, "spotLights[0].constant"), 1.0f);
-    glUniform1f(glGetUniformLocation(shader.program, "spotLights[0].linear"), 0.09);
-    glUniform1f(glGetUniformLocation(shader.program, "spotLights[0].quadratic"), 0.032);
-    glUniform1f(glGetUniformLocation(shader.program, "spotLights[0].cutoff"), glm::cos(glm::radians(12.5f)));
-    glUniform1f(glGetUniformLocation(shader.program, "spotLights[0].outerCutoff"), glm::cos(glm::radians(15.5f)));
+      // Set the point light uniform for the current index.
+      glUniform3f(glGetUniformLocation(shader.program, ("pointLights[" + index + "].position").c_str()), pointLightPositions[i].x, pointLightPositions[i].y, pointLightPositions[i].z);
+      glUniform3f(glGetUniformLocation(shader.program, ("pointLights[" + index + "].ambient").c_str()), 0.05f, 0.05f, 0.05f);
+      glUniform3f(glGetUniformLocation(shader.program, ("pointLights[" + index + "].diffuse").c_str()), 1.0f, 1.0f, 1.0f);
+      glUniform3f(glGetUniformLocation(shader.program, ("pointLights[" + index + "].specular").c_str()), 1.0f, 1.0f, 1.0f);
+      glUniform1f(glGetUniformLocation(shader.program, ("pointLights[" + index + "].constant").c_str()), 1.0f);
+      glUniform1f(glGetUniformLocation(shader.program, ("pointLights[" + index + "].linear").c_str()), 0.09);
+      glUniform1f(glGetUniformLocation(shader.program, ("pointLights[" + index + "].quadratic").c_str()), 0.032);
+    }
 
     // Pass material values.
     GLuint materialShininess = glGetUniformLocation(shader.program, "material.shininess");
@@ -493,38 +503,6 @@ int main() {
       glDrawArrays(GL_TRIANGLES, 0, 36);
     }
     glBindVertexArray(0);
-
-    // Bind the VAO and shader.
-    glBindVertexArray(lightVAO);
-    lampShader.use();
-
-    // Pass the view and projection matrices from the camera.
-    viewMatrix = glGetUniformLocation(lampShader.program, "view");
-    glUniformMatrix4fv(viewMatrix, 1, GL_FALSE, glm::value_ptr(camera.view));
-    projectionMatrix = glGetUniformLocation(lampShader.program, "projection");
-    glUniformMatrix4fv(projectionMatrix, 1, GL_FALSE, glm::value_ptr(camera.projection));
-
-    for (GLuint i = 0; i < 4; i++) {
-      // Apply world transformations.
-      model = glm::mat4();
-      model = glm::translate(model, pointLightPositions[i]);
-      model = glm::scale(model, glm::vec3(0.2f));
-
-      modelMatrix = glGetUniformLocation(lampShader.program, "model");
-      glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
-
-      // Draw the lamp.
-      glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
-    glBindVertexArray(0);
-
-    // Draw something with the geometry shader program.
-    //glDisable(GL_DEPTH_TEST);
-    //gsShader.use();
-    //glBindVertexArray(pointsVAO);
-    //glDrawArrays(GL_POINTS, 0, 4);
-    //glBindVertexArray(0);
-    //glEnable(GL_DEPTH_TEST);
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, FBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO);
