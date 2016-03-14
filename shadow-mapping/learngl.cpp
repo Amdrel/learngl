@@ -502,6 +502,17 @@ int main() {
       // Draw the container.
       glDrawArrays(GL_TRIANGLES, 0, 36);
     }
+
+    // Draw a scaled container under the camera to act as a floor.
+    model = glm::mat4();
+    model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
+    model = glm::scale(model, glm::vec3(15.0f, 0.001f, 15.0f));
+    glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
+    normal = glm::mat3(glm::transpose(glm::inverse(model)));
+    glUniformMatrix3fv(normalMatrix, 1, GL_FALSE, glm::value_ptr(normal));
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    // We're done drawing containers.
     glBindVertexArray(0);
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, FBO);
