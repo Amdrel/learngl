@@ -8,6 +8,10 @@ extern "C" {
 #include <GLFW/glfw3.h>
 }
 
+Shader::Shader() {
+  this->initialized = false;
+}
+
 Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath) {
   // Read shader sources into memory and store them in std strings.
   std::string vertexShaderSource = readShader(vertexPath);
@@ -31,6 +35,8 @@ Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath) {
   // Clean up the unlinked shaders as they are no longer needed.
   glDeleteShader(vertexShader);
   glDeleteShader(fragmentShader);
+
+  this->initialized = true;
 }
 
 Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath,
@@ -61,6 +67,8 @@ Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath,
   glDeleteShader(vertexShader);
   glDeleteShader(fragmentShader);
   glDeleteShader(geometryShader);
+
+  this->initialized = true;
 }
 
 GLuint Shader::compile(const GLuint type, const GLchar* src) {
@@ -80,6 +88,10 @@ GLuint Shader::compile(const GLuint type, const GLchar* src) {
 }
 
 void Shader::use() {
+  if (!this->initialized) {
+    return;
+  }
+
   glUseProgram(this->program);
 }
 

@@ -14,6 +14,7 @@ class Shader {
 
     // Shader constructors, one for vertex and fragment shaders; and one for
     // vertex, fragment, and geometry shaders.
+    Shader();
     Shader(const GLchar* vertexPath, const GLchar* fragmentPath);
     Shader(const GLchar* vertexPath, const GLchar* fragmentPath,
         const GLchar* geometryPath);
@@ -22,6 +23,8 @@ class Shader {
     // wrapper around glUseProgram using the public program field as input.
     void use();
   private:
+    bool initialized = false;
+
     // Reads a shader (or any file for that matter) and puts it into a string.
     std::string readShader(std::string filepath);
 

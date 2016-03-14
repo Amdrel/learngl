@@ -30,6 +30,29 @@ const GLuint kMSAASamples = 8;
 const GLuint kShadowWidth = 1024;
 const GLuint kShadowHeight = 1024;
 
+// Positions all containers
+const glm::vec3 cubePositions[] = {
+  glm::vec3( 0.0f,  0.0f,  0.0f),
+  glm::vec3( 2.0f,  5.0f, -15.0f),
+  glm::vec3(-1.5f, -2.2f, -2.5f),
+  glm::vec3(-3.8f, -2.0f, -12.3f),
+  glm::vec3( 2.4f, -0.4f, -3.5f),
+  glm::vec3(-1.7f,  3.0f, -7.5f),
+  glm::vec3( 1.3f, -2.0f, -2.5f),
+  glm::vec3( 1.5f,  2.0f, -2.5f),
+  glm::vec3( 1.5f,  0.2f, -1.5f),
+  glm::vec3(-1.3f,  1.0f, -1.5f)
+};
+
+const glm::vec3 directionalLightDir(0.0f, 1.0f, 0.0f);
+
+const glm::vec3 pointLightPositions[] = {
+  glm::vec3( 0.7f,  0.2f,  2.0f),
+  glm::vec3( 2.3f, -3.3f, -4.0f),
+  glm::vec3(-4.0f,  2.0f, -12.0f),
+  glm::vec3( 0.0f,  0.0f, -3.0f)
+};
+
 glm::mat4 model;
 glm::mat3 normal;
 
@@ -55,6 +78,15 @@ bool firstMouseEvent = true;
 
 // Keyboard state.
 bool keys[1024];
+
+// Global shaders (compiled later).
+Shader shader, postShader;
+
+// Global textures (loaded later).
+GLuint containerTexture, containerSpecular, containerEmission;
+
+void setupMatrices();
+void drawContainers(GLuint VAO, Shader shader, bool shadowMap);
 
 // Utility functions.
 GLuint loadTexture(std::string filepath);
@@ -121,14 +153,12 @@ int main() {
 
   // Read and compile the vertex and fragment shaders using
   // the shader helper class.
-  Shader shader("glsl/vertex.glsl", "glsl/fragment.glsl", "glsl/geometry.glsl");
-  Shader lampShader("glsl/lampvertex.glsl", "glsl/lampfragment.glsl");
-  Shader postShader("glsl/post_vert.glsl", "glsl/post_frag.glsl");
-  Shader gsShader("glsl/gs_vert.glsl", "glsl/gs_frag.glsl", "glsl/gs_geo.glsl");
+  shader = Shader("glsl/vertex.glsl", "glsl/fragment.glsl", "glsl/geometry.glsl");
+  postShader = Shader("glsl/post_vert.glsl", "glsl/post_frag.glsl");
 
-  GLuint containerTexture = loadTexture("assets/container2.png");
-  GLuint containerSpecular = loadTexture("assets/container2_specular.png");
-  GLuint containerEmission = loadTexture("assets/matrix.jpg");
+  containerTexture  = loadTexture("assets/container2.png");
+  containerSpecular = loadTexture("assets/container2_specular.png");
+  containerEmission = loadTexture("assets/matrix.jpg");
 
   // Container mesh data.
   GLfloat vertices[] = {
@@ -182,20 +212,6 @@ int main() {
      0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // Top-right
      0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // Bottom-right
     -0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // Bottom-left
-  };
-
-  // Positions all containers
-  glm::vec3 cubePositions[] = {
-    glm::vec3( 0.0f,  0.0f,  0.0f),
-    glm::vec3( 2.0f,  5.0f, -15.0f),
-    glm::vec3(-1.5f, -2.2f, -2.5f),
-    glm::vec3(-3.8f, -2.0f, -12.3f),
-    glm::vec3( 2.4f, -0.4f, -3.5f),
-    glm::vec3(-1.7f,  3.0f, -7.5f),
-    glm::vec3( 1.3f, -2.0f, -2.5f),
-    glm::vec3( 1.5f,  2.0f, -2.5f),
-    glm::vec3( 1.5f,  0.2f, -1.5f),
-    glm::vec3(-1.3f,  1.0f, -1.5f)
   };
 
   // Create and bind a framebuffer.
@@ -383,15 +399,6 @@ int main() {
   GLfloat delta = 0.0f;
   GLfloat lastFrame = 0.0f;
 
-  // Light information.
-  const glm::vec3 directionalLightDir(0.0f, 1.0f, 0.0f);
-  const glm::vec3 pointLightPositions[] = {
-    glm::vec3( 0.7f,  0.2f,  2.0f),
-    glm::vec3( 2.3f, -3.3f, -4.0f),
-    glm::vec3(-4.0f,  2.0f, -12.0f),
-    glm::vec3( 0.0f,  0.0f, -3.0f)
-  };
-
   // Render loop.
   while (!glfwWindowShouldClose(window)) {
     GLfloat currentFrame = glfwGetTime();
@@ -406,14 +413,11 @@ int main() {
     glViewport(0, 0, kShadowWidth, kShadowHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glClear(GL_DEPTH_BUFFER_BIT);
-
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // Set viewport to window framebuffer size for rendering the scene.
-    glViewport(0, 0, fbWidth, fbHeight);
 
     // Bind the off screen framebuffer (for post-processing) and clear the
     // screen to a nice blue color.
+    glViewport(0, 0, fbWidth, fbHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glClearColor(0.1f, 0.15f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -429,16 +433,65 @@ int main() {
     camera.fov = easeOutQuart(fovTime, startFov, (startFov - targetFov) * -1, limitTime);
     camera.update();
 
-    // Bind the VAO and shader.
-    glBindVertexArray(VAO);
     shader.use();
+    setupMatrices();
+    drawContainers(VBO, shader, false);
 
-    // Pass the view and projection matrices from the camera.
-    GLuint viewMatrix = glGetUniformLocation(shader.program, "view");
-    glUniformMatrix4fv(viewMatrix, 1, GL_FALSE, glm::value_ptr(camera.view));
-    GLuint projectionMatrix = glGetUniformLocation(shader.program, "projection");
-    glUniformMatrix4fv(projectionMatrix, 1, GL_FALSE, glm::value_ptr(camera.projection));
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, FBO);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO);
+    glBlitFramebuffer(0, 0, fbWidth, fbHeight, 0, 0, fbWidth, fbHeight,
+        GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
+    // Unbind the offscreen framebuffer containing the unprocessed frame.
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
+
+    postShader.use();
+    glBindVertexArray(frameVAO);
+
+    // Send the texture sampler to the shader.
+    GLuint frameTexture = glGetUniformLocation(postShader.program, "frameTexture");
+    glUniform1i(frameTexture, 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, screenTexture);
+
+    // Render the color buffer in the framebuffer to the quad with post shader.
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
+    // Swap buffers used for double buffering.
+    glfwSwapBuffers(window);
+  }
+
+  // Destroy the off screen framebuffer.
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glDeleteFramebuffers(1, &FBO);
+
+  // Properly deallocate the VBO and VAO.
+  glDeleteVertexArrays(1, &VAO);
+  glDeleteBuffers(1, &VBO);
+
+  // Terminate GLFW and clean any resources before exiting.
+  glfwTerminate();
+
+  return 0;
+}
+
+void setupMatrices() {
+  // Pass the view and projection matrices from the camera.
+  GLuint viewMatrix = glGetUniformLocation(shader.program, "view");
+  glUniformMatrix4fv(viewMatrix, 1, GL_FALSE, glm::value_ptr(camera.view));
+  GLuint projectionMatrix = glGetUniformLocation(shader.program, "projection");
+  glUniformMatrix4fv(projectionMatrix, 1, GL_FALSE, glm::value_ptr(camera.projection));
+}
+
+void drawContainers(GLuint VAO, Shader shader, bool shadowMap) {
+  // Bind the VAO and shader.
+  glBindVertexArray(VAO);
+
+  if (!shadowMap) {
     // Generate light colors.
     glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
 
@@ -473,12 +526,6 @@ int main() {
     glUniform1i(materialSpecular, 1);
     glUniform1i(materialEmission, 2);
 
-    // Misc values.
-    GLuint viewPos = glGetUniformLocation(shader.program, "viewPos");
-    glUniform3f(viewPos, camera.position.x, camera.position.y, camera.position.z);
-    GLuint time = glGetUniformLocation(shader.program, "time");
-    glUniform1f(time, glfwGetTime());
-
     // Bind the textures.
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, containerTexture);
@@ -486,77 +533,39 @@ int main() {
     glBindTexture(GL_TEXTURE_2D, containerSpecular);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, containerEmission);
-
-    // Draw multiple containers!
-    GLuint modelMatrix = glGetUniformLocation(shader.program, "model");
-    GLuint normalMatrix = glGetUniformLocation(shader.program, "normalMatrix");
-    for (GLuint i = 0; i < 10; i++) {
-      // Apply world transformations.
-      model = glm::mat4();
-      model = glm::translate(model, cubePositions[i]);
-      model = glm::rotate(model, i * 20.0f, glm::vec3(1.0f, 0.3f, 0.5f));
-      glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
-      // Calculate the normal matrix on the CPU (keep them normals perpendicular).
-      normal = glm::mat3(glm::transpose(glm::inverse(model)));
-      glUniformMatrix3fv(normalMatrix, 1, GL_FALSE, glm::value_ptr(normal));
-      // Draw the container.
-      glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
-
-    // Draw a scaled container under the camera to act as a floor.
-    model = glm::mat4();
-    model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
-    model = glm::scale(model, glm::vec3(15.0f, 0.001f, 15.0f));
-    glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
-    normal = glm::mat3(glm::transpose(glm::inverse(model)));
-    glUniformMatrix3fv(normalMatrix, 1, GL_FALSE, glm::value_ptr(normal));
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-
-    // We're done drawing containers.
-    glBindVertexArray(0);
-
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, FBO);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO);
-    glBlitFramebuffer(0, 0, fbWidth, fbHeight, 0, 0, fbWidth, fbHeight,
-        GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-    // Unbind the offscreen framebuffer containing the unprocessed frame.
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glDisable(GL_DEPTH_TEST);
-
-    postShader.use();
-    glBindVertexArray(frameVAO);
-
-    // Send the texture sampler to the shader.
-    GLuint frameTexture = glGetUniformLocation(postShader.program, "frameTexture");
-    time = glGetUniformLocation(postShader.program, "time");
-    glUniform1i(frameTexture, 0);
-    glUniform1f(time, glfwGetTime());
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, screenTexture);
-
-    // Render the color buffer in the framebuffer to the quad with post shader.
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindVertexArray(0);
-
-    // Swap buffers used for double buffering.
-    glfwSwapBuffers(window);
   }
 
-  // Destroy the off screen framebuffer.
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  glDeleteFramebuffers(1, &FBO);
+  // Misc values.
+  GLuint viewPos = glGetUniformLocation(shader.program, "viewPos");
+  glUniform3f(viewPos, camera.position.x, camera.position.y, camera.position.z);
 
-  // Properly deallocate the VBO and VAO.
-  glDeleteVertexArrays(1, &VAO);
-  glDeleteBuffers(1, &VBO);
+  // Draw multiple containers!
+  GLuint modelMatrix = glGetUniformLocation(shader.program, "model");
+  GLuint normalMatrix = glGetUniformLocation(shader.program, "normalMatrix");
+  for (GLuint i = 0; i < 10; i++) {
+    // Apply world transformations.
+    model = glm::mat4();
+    model = glm::translate(model, cubePositions[i]);
+    model = glm::rotate(model, i * 20.0f, glm::vec3(1.0f, 0.3f, 0.5f));
+    glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
+    // Calculate the normal matrix on the CPU (keep them normals perpendicular).
+    normal = glm::mat3(glm::transpose(glm::inverse(model)));
+    glUniformMatrix3fv(normalMatrix, 1, GL_FALSE, glm::value_ptr(normal));
+    // Draw the container.
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+  }
 
-  // Terminate GLFW and clean any resources before exiting.
-  glfwTerminate();
+  // Draw a scaled container under the camera to act as a floor.
+  model = glm::mat4();
+  model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
+  model = glm::scale(model, glm::vec3(15.0f, 0.001f, 15.0f));
+  glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
+  normal = glm::mat3(glm::transpose(glm::inverse(model)));
+  glUniformMatrix3fv(normalMatrix, 1, GL_FALSE, glm::value_ptr(normal));
+  glDrawArrays(GL_TRIANGLES, 0, 36);
 
-  return 0;
+  // We're done drawing containers.
+  glBindVertexArray(0);
 }
 
 GLuint loadTexture(std::string filepath) {
