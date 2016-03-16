@@ -8,11 +8,13 @@ out VS_OUT {
   vec3 position;
   vec3 normal;
   vec2 uv;
+  vec4 lightSpacePos;
 } vs_out;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat4 lightSpaceMatrix;
 
 // Stripped version of the model matrix without the translation information.
 uniform mat3 normalMatrix;
@@ -23,6 +25,7 @@ void main() {
   vs_out.position = vec3(model * vec4(position, 1.0f));
   vs_out.normal = normalMatrix * normal;
   vs_out.uv = vec2(uv.x, 1.0f - uv.y);
+  vs_out.lightSpacePos = lightSpaceMatrix * vec4(vs_out.position, 1.0f);
 
   // Apply the object's transform to the vertex.
   gl_Position = projection * view * model * vec4(position, 1.0f);

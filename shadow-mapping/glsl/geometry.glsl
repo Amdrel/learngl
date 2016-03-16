@@ -9,12 +9,14 @@ in VS_OUT {
   vec3 position;
   vec3 normal;
   vec2 uv;
+  vec4 lightSpacePos;
 } gs_in[];
 
 out GS_OUT {
   vec3 position;
   vec3 normal;
   vec2 uv;
+  vec4 lightSpacePos;
 } gs_out;
 
 uniform float time;
@@ -30,6 +32,7 @@ void main() {
     gs_out.position = gs_in[i].position;
     gs_out.normal = gs_in[i].normal;
     gs_out.uv = gs_in[i].uv;
+    gs_out.lightSpacePos = gs_in[i].lightSpacePos;
     //gl_Position = explode(gl_in[i].gl_Position, gs_in[i].normal, 1.0f);
     gl_Position = gl_in[i].gl_Position;
     //gl_Position = gl_in[i].gl_Position + vec4(vec3((sin(time) + 1.0f) / 16.0f), 0.0f);

@@ -86,7 +86,7 @@ Shader shader, depthShader, postShader;
 GLuint containerTexture, containerSpecular, containerEmission;
 
 void setupMatrices();
-void drawContainers(GLuint VAO, Shader shader, bool shadowMap);
+void drawContainers(GLuint VAO, Shader shader, bool shadowMap, GLuint map);
 
 // Utility functions.
 GLuint loadTexture(std::string filepath);
@@ -290,8 +290,10 @@ int main() {
       kShadowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+  GLfloat borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+  glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
   glBindTexture(GL_TEXTURE_2D, 0);
 
   GLuint depthMapFBO;
@@ -420,7 +422,7 @@ int main() {
     glClear(GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     depthShader.use();
-    drawContainers(VBO, depthShader, true);
+    drawContainers(VBO, depthShader, true, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // Bind the off screen framebuffer (for post-processing) and clear the
@@ -445,7 +447,7 @@ int main() {
 
     shader.use();
     setupMatrices();
-    drawContainers(VBO, shader, false);
+    drawContainers(VBO, shader, false, depthMap);
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, FBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFBO);
@@ -465,7 +467,7 @@ int main() {
     GLuint frameTexture = glGetUniformLocation(postShader.program, "frameTexture");
     glUniform1i(frameTexture, 0);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glBindTexture(GL_TEXTURE_2D, screenTexture);
 
     // Render the color buffer in the framebuffer to the quad with post shader.
     glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -497,56 +499,44 @@ void setupMatrices() {
   glUniformMatrix4fv(projectionMatrix, 1, GL_FALSE, glm::value_ptr(camera.projection));
 }
 
-void drawContainers(GLuint VAO, Shader shader, bool shadowMap) {
+void drawContainers(GLuint VAO, Shader shader, bool shadowMap, GLuint map) {
   // Bind the VAO and shader.
   glBindVertexArray(VAO);
 
+  glm::vec3 lightPosition = glm::vec3(-2.0f, 4.0f, -1.0f);
+  GLfloat near_plane = 1.0f, far_plane = 7.5f;
+  glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f,
+      near_plane, far_plane);
+  glm::mat4 lightView = glm::lookAt(
+      lightPosition,
+      glm::vec3(0.0f),
+      glm::vec3(1.0f)
+  );
+  glm::mat4 lightSpace = lightProjection * lightView;
+
+  GLuint lightSpaceMatrix = glGetUniformLocation(shader.program, "lightSpaceMatrix");
+  glUniformMatrix4fv(lightSpaceMatrix, 1, GL_FALSE, glm::value_ptr(lightSpace));
+
   if (!shadowMap) {
-    // Generate light colors.
-    glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
-
-    // Directional light
-    glUniform3f(glGetUniformLocation(shader.program, "dirLight.direction"), 0.0f, -1.0f, 0.0f);
-    glUniform3f(glGetUniformLocation(shader.program, "dirLight.ambient"), 0.05f, 0.05f, 0.05f);
-    glUniform3f(glGetUniformLocation(shader.program, "dirLight.diffuse"), 1.0f, 1.0f, 1.0f);
-    glUniform3f(glGetUniformLocation(shader.program, "dirLight.specular"), 0.0f, 0.0f, 0.0f);
-
-    for (int i = 0; i < 4; i++) {
-      // Uniform arrays can have values set using an index via string
-      // representation.
-      std::string index = std::to_string(i);
-
-      // Set the point light uniform for the current index.
-      glUniform3f(glGetUniformLocation(shader.program, ("pointLights[" + index + "].position").c_str()), pointLightPositions[i].x, pointLightPositions[i].y, pointLightPositions[i].z);
-      glUniform3f(glGetUniformLocation(shader.program, ("pointLights[" + index + "].ambient").c_str()), 0.05f, 0.05f, 0.05f);
-      glUniform3f(glGetUniformLocation(shader.program, ("pointLights[" + index + "].diffuse").c_str()), 1.0f, 1.0f, 1.0f);
-      glUniform3f(glGetUniformLocation(shader.program, ("pointLights[" + index + "].specular").c_str()), 1.0f, 1.0f, 1.0f);
-      glUniform1f(glGetUniformLocation(shader.program, ("pointLights[" + index + "].constant").c_str()), 1.0f);
-      glUniform1f(glGetUniformLocation(shader.program, ("pointLights[" + index + "].linear").c_str()), 0.09);
-      glUniform1f(glGetUniformLocation(shader.program, ("pointLights[" + index + "].quadratic").c_str()), 0.032);
-    }
-
-    // Pass material values.
-    GLuint materialShininess = glGetUniformLocation(shader.program, "material.shininess");
-    GLuint materialDiffuse   = glGetUniformLocation(shader.program, "material.diffuse");
-    GLuint materialSpecular  = glGetUniformLocation(shader.program, "material.specular");
-    GLuint materialEmission  = glGetUniformLocation(shader.program, "material.emission");
-    glUniform1f(materialShininess, 32.0f);
+    // Pass light value.
+    GLuint materialDiffuse = glGetUniformLocation(shader.program, "diffuseTexture");
     glUniform1i(materialDiffuse, 0);
-    glUniform1i(materialSpecular, 1);
-    glUniform1i(materialEmission, 2);
+
+    // Pass the shadow map/depth map or whatever. Non consistent names are good.
+    GLuint depthMap = glGetUniformLocation(shader.program, "shadowMap");
+    glUniform1i(depthMap, 1);
 
     // Bind the textures.
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, containerTexture);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, containerSpecular);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, containerEmission);
+    glBindTexture(GL_TEXTURE_2D, map);
 
     // Misc values.
     GLuint viewPos = glGetUniformLocation(shader.program, "viewPos");
     glUniform3f(viewPos, camera.position.x, camera.position.y, camera.position.z);
+    GLuint lightPos = glGetUniformLocation(shader.program, "lightPos");
+    glUniform3f(lightPos, lightPosition.x, lightPosition.y, lightPosition.z);
 
     // Draw multiple containers!
     GLuint modelMatrix = glGetUniformLocation(shader.program, "model");
@@ -576,21 +566,8 @@ void drawContainers(GLuint VAO, Shader shader, bool shadowMap) {
     glUniformMatrix3fv(normalMatrix, 1, GL_FALSE, glm::value_ptr(normal));
     glDrawArrays(GL_TRIANGLES, 0, 36);
   } else {
-    GLfloat near_plane = 1.0f, far_plane = 7.5f;
-    glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f,
-        near_plane, far_plane);
-    glm::mat4 lightView = glm::lookAt(
-        glm::vec3(-2.0f, 4.0f, -1.0f),
-        glm::vec3(0.0f),
-        glm::vec3(1.0f)
-    );
-    glm::mat4 lightSpace = lightProjection * lightView;
-
     // Draw multiple containers!
-    GLuint lightSpaceMatrix = glGetUniformLocation(shader.program, "lightSpaceMatrix");
     GLuint modelMatrix = glGetUniformLocation(shader.program, "model");
-
-    glUniformMatrix4fv(lightSpaceMatrix, 1, GL_FALSE, glm::value_ptr(lightSpace));
 
     for (GLuint i = 0; i < 10; i++) {
       // Apply world transformations.
