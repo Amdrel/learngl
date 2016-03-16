@@ -423,6 +423,7 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
+    // Update the time counter for the camera zoom.
     const GLfloat limitTime = 1.0f;
     fovTime += delta;
     if (fovTime > limitTime) {
@@ -430,6 +431,7 @@ int main() {
     }
 
     // Update the perspective to account for changes in fov.
+    // Used by the scroll to zoom feature.
     camera.fov = easeOutQuart(fovTime, startFov, (startFov - targetFov) * -1, limitTime);
     camera.update();
 
