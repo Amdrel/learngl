@@ -80,7 +80,7 @@ bool firstMouseEvent = true;
 bool keys[1024];
 
 // Global shaders (compiled later).
-Shader shader, postShader;
+Shader shader, depthShader, postShader;
 
 // Global textures (loaded later).
 GLuint containerTexture, containerSpecular, containerEmission;
@@ -154,6 +154,7 @@ int main() {
   // Read and compile the vertex and fragment shaders using
   // the shader helper class.
   shader = Shader("glsl/vertex.glsl", "glsl/fragment.glsl", "glsl/geometry.glsl");
+  depthShader = Shader("glsl/depth_vert.glsl", "glsl/depth_frag.glsl");
   postShader = Shader("glsl/post_vert.glsl", "glsl/post_frag.glsl");
 
   containerTexture  = loadTexture("assets/container2.png");
@@ -388,12 +389,12 @@ int main() {
   screenWidth = (GLfloat)fbWidth;
   screenHeight = (GLfloat)fbHeight;
   camera = PerspectiveCamera(
-    glm::vec3(0.0f, 0.0f, 3.0f),
-    glm::vec3(0.0f, glm::radians(-90.0f), 0.0f),
-    glm::radians(45.0f),
-    screenWidth / screenHeight,
-    0.1f,
-    100.0f
+      glm::vec3(0.0f, 0.0f, 3.0f),
+      glm::vec3(0.0f, glm::radians(-90.0f), 0.0f),
+      glm::radians(45.0f),
+      screenWidth / screenHeight,
+      0.1f,
+      100.0f
   );
 
   GLfloat delta = 0.0f;
@@ -409,10 +410,17 @@ int main() {
     glfwPollEvents();
     move(delta);
 
+    // Use the depth shader and set the required uniforms. The depth shader uses
+    // a special lightSpaceMatrix with an orthographic projection looking at the
+    // specific mesh to cast a shadow for.
+    //
     // Render to the depth map for shadow mapping.
     glViewport(0, 0, kShadowWidth, kShadowHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glClear(GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+    depthShader.use();
+    drawContainers(VBO, depthShader, true);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // Bind the off screen framebuffer (for post-processing) and clear the
@@ -457,7 +465,7 @@ int main() {
     GLuint frameTexture = glGetUniformLocation(postShader.program, "frameTexture");
     glUniform1i(frameTexture, 0);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, screenTexture);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
 
     // Render the color buffer in the framebuffer to the quad with post shader.
     glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -535,36 +543,73 @@ void drawContainers(GLuint VAO, Shader shader, bool shadowMap) {
     glBindTexture(GL_TEXTURE_2D, containerSpecular);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, containerEmission);
-  }
 
-  // Misc values.
-  GLuint viewPos = glGetUniformLocation(shader.program, "viewPos");
-  glUniform3f(viewPos, camera.position.x, camera.position.y, camera.position.z);
+    // Misc values.
+    GLuint viewPos = glGetUniformLocation(shader.program, "viewPos");
+    glUniform3f(viewPos, camera.position.x, camera.position.y, camera.position.z);
 
-  // Draw multiple containers!
-  GLuint modelMatrix = glGetUniformLocation(shader.program, "model");
-  GLuint normalMatrix = glGetUniformLocation(shader.program, "normalMatrix");
-  for (GLuint i = 0; i < 10; i++) {
-    // Apply world transformations.
+    // Draw multiple containers!
+    GLuint modelMatrix = glGetUniformLocation(shader.program, "model");
+    GLuint normalMatrix = glGetUniformLocation(shader.program, "normalMatrix");
+
+    for (GLuint i = 0; i < 10; i++) {
+      // Apply world transformations.
+      model = glm::mat4();
+      model = glm::translate(model, cubePositions[i]);
+      model = glm::rotate(model, i * 20.0f, glm::vec3(1.0f, 0.3f, 0.5f));
+      glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
+
+      // Calculate the normal matrix on the CPU (keep them normals perpendicular).
+      normal = glm::mat3(glm::transpose(glm::inverse(model)));
+      glUniformMatrix3fv(normalMatrix, 1, GL_FALSE, glm::value_ptr(normal));
+
+      // Draw the container.
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
+
+    // Draw a scaled container under the camera to act as a floor.
     model = glm::mat4();
-    model = glm::translate(model, cubePositions[i]);
-    model = glm::rotate(model, i * 20.0f, glm::vec3(1.0f, 0.3f, 0.5f));
+    model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
+    model = glm::scale(model, glm::vec3(15.0f, 0.001f, 15.0f));
     glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
-    // Calculate the normal matrix on the CPU (keep them normals perpendicular).
     normal = glm::mat3(glm::transpose(glm::inverse(model)));
     glUniformMatrix3fv(normalMatrix, 1, GL_FALSE, glm::value_ptr(normal));
-    // Draw the container.
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+  } else {
+    GLfloat near_plane = 1.0f, far_plane = 7.5f;
+    glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f,
+        near_plane, far_plane);
+    glm::mat4 lightView = glm::lookAt(
+        glm::vec3(-2.0f, 4.0f, -1.0f),
+        glm::vec3(0.0f),
+        glm::vec3(1.0f)
+    );
+    glm::mat4 lightSpace = lightProjection * lightView;
+
+    // Draw multiple containers!
+    GLuint lightSpaceMatrix = glGetUniformLocation(shader.program, "lightSpaceMatrix");
+    GLuint modelMatrix = glGetUniformLocation(shader.program, "model");
+
+    glUniformMatrix4fv(lightSpaceMatrix, 1, GL_FALSE, glm::value_ptr(lightSpace));
+
+    for (GLuint i = 0; i < 10; i++) {
+      // Apply world transformations.
+      model = glm::mat4();
+      model = glm::translate(model, cubePositions[i]);
+      model = glm::rotate(model, i * 20.0f, glm::vec3(1.0f, 0.3f, 0.5f));
+      glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
+
+      // Draw the container.
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
+
+    // Draw a scaled container under the camera to act as a floor.
+    model = glm::mat4();
+    model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
+    model = glm::scale(model, glm::vec3(15.0f, 0.001f, 15.0f));
+    glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
     glDrawArrays(GL_TRIANGLES, 0, 36);
   }
-
-  // Draw a scaled container under the camera to act as a floor.
-  model = glm::mat4();
-  model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
-  model = glm::scale(model, glm::vec3(15.0f, 0.001f, 15.0f));
-  glUniformMatrix4fv(modelMatrix, 1, GL_FALSE, glm::value_ptr(model));
-  normal = glm::mat3(glm::transpose(glm::inverse(model)));
-  glUniformMatrix3fv(normalMatrix, 1, GL_FALSE, glm::value_ptr(normal));
-  glDrawArrays(GL_TRIANGLES, 0, 36);
 
   // We're done drawing containers.
   glBindVertexArray(0);
